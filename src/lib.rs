@@ -13,10 +13,14 @@ enum Endianness {
 type Bit = bool;
 
 struct Message {
+    header: Header, 
+    //payload: Payload,
+}
+
+struct Header {
     frame: Frame, 
     frame_address: FrameAddress, 
     protocol_header: ProtocolHeader, 
-    //payload: Payload,
 }
 
 // BitFrame is an intermediate representation.
@@ -139,47 +143,49 @@ struct ProtocolHeader {
     reserved_2: u16,
 }
 
+// TODO: This varies from message type to message type
 struct Payload {}
 
 #[derive(Debug)]
 struct Packet(Vec<u8>);
 
-impl Packet {
+//impl Packet {
+impl Header {
     fn build(&mut self, msg: Message) {
         // First 2 bytes of Frame
-        self.extend_with_u16(msg.frame.size);
+        self.extend_with_u16(msg.header.frame.size);
 
         // Second 2 bytes of Frame
-        let bitframe = BitFrame::from(&msg.frame);        
+        let bitframe = BitFrame::from(&msg.header.frame);        
         
         let mut fr_pt2: [Bit; 16] = [false; 16];
         fr_pt2[0] = bitframe.origin[0];
-        fr_pt2[1] =    bitframe.origin[1];
-        fr_pt2[2] =   bitframe.tagged;
-        fr_pt2[3] =  bitframe.addressable; 
+        fr_pt2[1] = bitframe.origin[1];
+        fr_pt2[2] = bitframe.tagged;
+        fr_pt2[3] = bitframe.addressable; 
         for i in 0..bitframe.protocol.len() {
             fr_pt2[i+4] = bitframe.protocol[i];
         }
 
         let (fr_pt2_a_bits, fr_pt2_b_bits) = fr_pt2.split_at(8);
-        let fr_pt2_a = Packet::bits_to_byte(fr_pt2_a_bits);
-        let fr_pt2_b = Packet::bits_to_byte(fr_pt2_b_bits);
+        let fr_pt2_a = Header::bits_to_byte(fr_pt2_a_bits);
+        let fr_pt2_b = Header::bits_to_byte(fr_pt2_b_bits);
 
         // Add these two bytes in little endian order.
         self.extend_with_u8(fr_pt2_b);
         self.extend_with_u8(fr_pt2_a);
 
         // Final 4 bytes of Frame
-        self.extend_with_u32(msg.frame.source);
+        self.extend_with_u32(msg.header.frame.source);
 
         // First, 8 bytes of FrameAddress
-        self.extend_with_u8_array_8(msg.frame_address.target);
+        self.extend_with_u8_array_8(msg.header.frame_address.target);
 
         // Second, 6 bytes of FrameAddress
-        self.extend_with_u8_array_6(msg.frame_address.reserved);
+        self.extend_with_u8_array_6(msg.header.frame_address.reserved);
 
         // Third, 1 byte of FrameAddress
-        let bitframeaddress = BitFrameAddress::from(&msg.frame_address);
+        let bitframeaddress = BitFrameAddress::from(&msg.header.frame_address);
 
         let mut fa_pt2: [Bit; 8] = [false; 8];
         let rlen = bitframeaddress.reserved_2.len();
@@ -189,21 +195,22 @@ impl Packet {
         fa_pt2[rlen + 0] = bitframeaddress.ack_required;
         fa_pt2[rlen + 1] = bitframeaddress.res_required;
 
-        let fa_pt2_byte = Packet::bits_to_byte(&fa_pt2);
+        let fa_pt2_byte = Header::bits_to_byte(&fa_pt2);
         self.extend_with_u8(fa_pt2_byte);
 
         // Final byte of FrameAddress
-        self.extend_with_u8(msg.frame_address.sequence);
+        self.extend_with_u8(msg.header.frame_address.sequence);
 
         // First 8 bytes of ProtocolHeader
-        self.extend_with_u64(msg.protocol_header.reserved);
+        self.extend_with_u64(msg.header.protocol_header.reserved);
         // Second, 2 bytes of ProtocolHeader
-        self.extend_with_u16(msg.protocol_header.message_type);
+        self.extend_with_u16(msg.header.protocol_header.message_type);
         // Final 2 bytes of ProtocolHeader
-        self.extend_with_u16(msg.protocol_header.reserved_2);
+        self.extend_with_u16(msg.header.protocol_header.reserved_2);
 
         // Set packet size in first 2 bytes of packet, Frame.
-        let mut p = Packet::u16_to_u8_array(self.0.len() as u16);
+        let mut p = Header::u16_to_u8_array(self.len() as u16);
+        //let mut p = Header::u16_to_u8_array(self.0.len() as u16);
         p.reverse();
         self.0[0] = p[0];
         self.0[1] = p[1];
@@ -310,7 +317,13 @@ impl Packet {
 }
 
 fn send(msg: Message) -> Result<(), io::Error> {
-    let local_ip = Ipv4Addr::new(192, 168, 0, 2);
+    let dev = true;
+    let (local_ip, remote_ip) = match dev {
+        true => (Ipv4Addr::new(127, 0, 0, 1), Ipv4Addr::new(127, 0, 0, 1)), 
+        false => (Ipv4Addr::new(192, 168, 0, 2), Ipv4Addr::new(192, 168, 0, 5)), 
+    };
+
+    //let local_ip = Ipv4Addr::new(192, 168, 0, 2);
     //let local_ip = Ipv4Addr::new(127,0,0,1);
     let conn = SocketAddrV4::new(local_ip, 56700);
     let socket = try!(UdpSocket::bind(conn));
@@ -318,13 +331,15 @@ fn send(msg: Message) -> Result<(), io::Error> {
     let mut buf = [0; 100]; // for recv
 
     //let remote_ip = Ipv4Addr::new(127,0,0,1);
-    let remote_ip = Ipv4Addr::new(192, 168, 0, 5);
+    //let remote_ip = Ipv4Addr::new(192, 168, 0, 5);
     let remote_conn = SocketAddrV4::new(remote_ip, 56700);
 
     socket.set_broadcast(true)?;
     
-    let mut packet: Packet = Packet(vec![0u8; 0]);
-    packet.build(msg);
+    //let mut packet: Packet = Packet(vec![0u8; 0]);
+    let mut header: Header = Header::new();
+    header.build(msg);
+    let packet: Packet = Packet { Header: header };
     
     let p = &packet.0;
     println!("Dec: {:?}", p);
@@ -340,9 +355,21 @@ fn send(msg: Message) -> Result<(), io::Error> {
     // Read from the socket
     let (amt, src) = try!(socket.recv_from(&mut buf));
 
-    println!("Received from {} : {:?}", src, &buf[0 .. amt]);
+    let resp_packet = &buf[0..amt];
+    println!("Received from {} : {:?}", src, resp_packet);
+
+    parse_response(resp_packet.to_vec());
+    // let resp_obj = parse_response(resp);
+    // display_response(resp_obj);
 
     Ok(())
+}
+
+fn parse_response(resp: Vec<u8>) {
+    // let mut res = StateServiceMessage {
+    //     Header: 
+    // };
+    println!("Parse: {:?}", resp);
 }
 
 fn all_le(v: Vec<u8>) -> Vec<u8> {
