@@ -3,24 +3,126 @@
 use std::io;
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
-//use Endianness::{Big, Little};
-
-enum Endianness {
-    Big, 
-    Little,
-}
-
 type Bit = bool;
 
 struct Message {
     header: Header, 
-    //payload: Payload,
+    payload: Payload,
 }
+
+impl Message {
+    pub fn new(header: Header, payload: Payload) -> Message {
+        Message {header: header, payload: payload}
+    }
+}
+
+// MessageBin newtype
+struct MessageBin(Vec<u8>);
 
 struct Header {
     frame: Frame, 
     frame_address: FrameAddress, 
     protocol_header: ProtocolHeader, 
+}
+
+impl Header {
+    pub fn new( frame: Frame, 
+                frame_address: FrameAddress, 
+                protocol_header: ProtocolHeader) -> Header {
+        Header {frame: frame, 
+                frame_address: frame_address, 
+                protocol_header: protocol_header, 
+        }
+    }
+}
+
+// TODO: This varies from message type to message type
+// Payload newtype
+struct Payload(Vec<u8>);
+
+impl Payload {
+    pub fn new() -> Payload {
+        Payload(vec![])
+    }
+}
+
+struct Frame {
+    // First 2 bytes
+    size: u16, 
+
+    // Second two bytes
+    origin: u8, 
+    // For discovery using Device::GetService use true and target all zeroes.
+    // For all other messages set to false and target to device MAC address.
+    tagged: bool, 
+    addressable: bool,  // Must be true
+    protocol: u16,  // Must be 1024
+
+    // Final 4 bytes
+    source: u32,
+}
+
+impl Frame {
+    pub fn new( origin: u8, 
+                tagged: bool, 
+                addressable: bool, 
+                protocol: u16, 
+                source: u32) -> Frame {
+        Frame {
+            size: 0, 
+            origin: origin, 
+            tagged: tagged, 
+            addressable: addressable, 
+            protocol: protocol, 
+            source: source, 
+        }
+    }
+}
+
+struct FrameAddress {
+    // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
+    target: [u8; 8],  
+    reserved: [u8; 6],
+    reserved_2: u8,
+    ack_required: bool,
+    res_required: bool,
+    sequence: u8,
+}
+
+impl FrameAddress {
+    pub fn new( target: [u8; 8], 
+                reserved: [u8; 6], 
+                reserved_2: u8, 
+                ack_required: bool, 
+                res_required: bool, 
+                sequence: u8) -> FrameAddress {
+        FrameAddress {
+            target: target, 
+            reserved: reserved, 
+            reserved_2: reserved_2, 
+            ack_required: ack_required, 
+            res_required: res_required, 
+            sequence: sequence, 
+        }
+    }
+}
+
+struct ProtocolHeader {
+    reserved: u64,
+    message_type: u16,
+    reserved_2: u16,
+}
+
+impl ProtocolHeader {
+    pub fn new( reserved: u64, 
+                message_type: u16, 
+                reserved_2: u16) -> ProtocolHeader {
+        ProtocolHeader {
+            reserved: reserved, 
+            message_type: message_type, 
+            reserved_2: reserved_2,
+        }
+    }
 }
 
 // BitFrame is an intermediate representation.
@@ -29,12 +131,13 @@ struct BitFrame {
     size: u16, 
 
     // Second two bytes
-    origin: [Bit; 2], 
+    origin: BitOrigin, 
+
     // For discovery using Device::GetService use true and target all zeroes.
     // For all other messages set to false and target to device MAC address.
     tagged: Bit, 
-    addressable: Bit,  // Must be true
-    protocol: [Bit; 12],  // Must be 1024
+    addressable: Bit,       // Must be true
+    protocol: BitProtocol,  // Must be 1024
 
     // Final 4 bytes
     source: u32,
@@ -47,36 +150,61 @@ impl<'a> From<&'a Frame> for BitFrame {
             size: f.size, 
 
             // Second two bytes
-            origin: {
-                // Format as zero padded boolean string.
-                let s = format!("{:02b}", f.origin);
-                // Convert boolean string to vec of 1s and 0s.
-                let v: Vec<bool> = s.as_bytes().iter().map(|&n| 
-                    if n == 49 { true } 
-                    else { false }).collect();
-                let a: [Bit; 2] = [v[0], v[1]];
-                a
-            },
+            origin: BitOrigin::from(f.origin),
             tagged: f.tagged, 
             addressable: f.addressable, 
-            protocol: {
-               // Format as zero padded boolean string.
-                let s = format!("{:012b}", f.protocol);
-                // Convert boolean string to vec of 1s and 0s.
-                let v: Vec<bool> = s.as_bytes().iter().map(|&n| 
-                    if n == 49 { true } 
-                    else { false }).collect();
-                let a: [Bit; 12] = [
-                    v[0], v[1], v[2], v[3],  v[4],  v[5],  v[6],  
-                    v[7], v[8], v[9], v[10], v[11], 
-                ];
-                a
-            },
+            protocol: BitProtocol::from(f.protocol),
 
             // Final four bytes
             source: f.source,
         }
     } 
+}
+
+// BitOrigin newtype
+struct BitOrigin([Bit; 2]);
+
+impl From<u8> for BitOrigin {
+    // Format as zero padded boolean string.
+    // Convert boolean string to vec of bools
+    fn from(o: u8) -> BitOrigin {
+        let s = format!("{:02b}", o);  
+        let v: Vec<Bit> = s.as_bytes().iter().map(
+            |&n|
+                if n == 49 { true }
+                else { false }
+            ).collect();
+        BitOrigin([v[0], v[1]])
+    }
+}
+
+// BitProtocol newtype
+struct BitProtocol([Bit; 12]);
+
+impl From<u16> for BitProtocol {
+    fn from(p: u16) -> BitProtocol {
+        let s = format!("{:012b}", p);
+        let v: Vec<Bit> = s.as_bytes().iter().map(
+            |&n|
+                if n == 49 { true }
+                else { false }
+            ).collect();
+        BitProtocol([
+            v[0], v[1], v[2], v[3],  v[4],  v[5],  
+            v[6], v[7], v[8], v[9], v[10], v[11], 
+        ])
+    }
+}
+
+
+struct BitFrameAddress {
+    // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
+    target: [u8; 8],  
+    reserved: [u8; 6],
+    reserved_2: [Bit; 6],
+    ack_required: Bit,
+    res_required: Bit,
+    sequence: u8,
 }
 
 impl<'a> From<&'a FrameAddress> for BitFrameAddress {
@@ -101,88 +229,41 @@ impl<'a> From<&'a FrameAddress> for BitFrameAddress {
     }
 }
 
-struct Frame {
-    // First 2 bytes
-    size: u16, 
+impl From<Message> for MessageBin {
+    fn from(msg: Message) -> MessageBin {
+        let mut msg_bin = MessageBin(vec![]);
 
-    // Second two bytes
-    origin: u8, 
-    // For discovery using Device::GetService use true and target all zeroes.
-    // For all other messages set to false and target to device MAC address.
-    tagged: bool, 
-    addressable: bool,  // Must be true
-    protocol: u16,  // Must be 1024
-
-    // Final 4 bytes
-    source: u32,
-}
-
-struct FrameAddress {
-    // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
-    target: [u8; 8],  
-    reserved: [u8; 6],
-    reserved_2: u8,
-    ack_required: bool,
-    res_required: bool,
-    sequence: u8,
-}
-
-struct BitFrameAddress {
-    // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
-    target: [u8; 8],  
-    reserved: [u8; 6],
-    reserved_2: [Bit; 6],
-    ack_required: Bit,
-    res_required: Bit,
-    sequence: u8,
-}
-
-struct ProtocolHeader {
-    reserved: u64,
-    message_type: u16,
-    reserved_2: u16,
-}
-
-// TODO: This varies from message type to message type
-struct Payload {}
-
-#[derive(Debug)]
-struct Packet(Vec<u8>);
-
-//impl Packet {
-impl Header {
-    fn build(&mut self, msg: Message) {
         // First 2 bytes of Frame
-        self.extend_with_u16(msg.header.frame.size);
+        msg_bin.extend_with_u16(msg.header.frame.size);
 
         // Second 2 bytes of Frame
         let bitframe = BitFrame::from(&msg.header.frame);        
         
         let mut fr_pt2: [Bit; 16] = [false; 16];
-        fr_pt2[0] = bitframe.origin[0];
-        fr_pt2[1] = bitframe.origin[1];
+        fr_pt2[0] = bitframe.origin.0[0];
+        fr_pt2[1] = bitframe.origin.0[1];
         fr_pt2[2] = bitframe.tagged;
         fr_pt2[3] = bitframe.addressable; 
-        for i in 0..bitframe.protocol.len() {
-            fr_pt2[i+4] = bitframe.protocol[i];
+        for i in 0..bitframe.protocol.0.len() {
+            fr_pt2[i+4] = bitframe.protocol.0[i];
         }
 
         let (fr_pt2_a_bits, fr_pt2_b_bits) = fr_pt2.split_at(8);
-        let fr_pt2_a = Header::bits_to_byte(fr_pt2_a_bits);
-        let fr_pt2_b = Header::bits_to_byte(fr_pt2_b_bits);
+        let fr_pt2_a = MessageBin::bits_to_byte(fr_pt2_a_bits);
+        let fr_pt2_b = MessageBin::bits_to_byte(fr_pt2_b_bits);
 
         // Add these two bytes in little endian order.
-        self.extend_with_u8(fr_pt2_b);
-        self.extend_with_u8(fr_pt2_a);
+        msg_bin.extend_with_u8(fr_pt2_b);
+        msg_bin.extend_with_u8(fr_pt2_a);
 
         // Final 4 bytes of Frame
-        self.extend_with_u32(msg.header.frame.source);
+        msg_bin.extend_with_u32(msg.header.frame.source);
 
         // First, 8 bytes of FrameAddress
-        self.extend_with_u8_array_8(msg.header.frame_address.target);
+        msg_bin.extend_with_u8_array_8(msg.header.frame_address.target);
 
         // Second, 6 bytes of FrameAddress
-        self.extend_with_u8_array_6(msg.header.frame_address.reserved);
+        msg_bin.extend_with_u8_array_6(msg.header.frame_address.reserved);
 
         // Third, 1 byte of FrameAddress
         let bitframeaddress = BitFrameAddress::from(&msg.header.frame_address);
@@ -195,34 +276,36 @@ impl Header {
         fa_pt2[rlen + 0] = bitframeaddress.ack_required;
         fa_pt2[rlen + 1] = bitframeaddress.res_required;
 
-        let fa_pt2_byte = Header::bits_to_byte(&fa_pt2);
-        self.extend_with_u8(fa_pt2_byte);
+        let fa_pt2_byte = MessageBin::bits_to_byte(&fa_pt2);
+        msg_bin.extend_with_u8(fa_pt2_byte);
 
         // Final byte of FrameAddress
-        self.extend_with_u8(msg.header.frame_address.sequence);
+        msg_bin.extend_with_u8(msg.header.frame_address.sequence);
 
         // First 8 bytes of ProtocolHeader
-        self.extend_with_u64(msg.header.protocol_header.reserved);
+        msg_bin.extend_with_u64(msg.header.protocol_header.reserved);
         // Second, 2 bytes of ProtocolHeader
-        self.extend_with_u16(msg.header.protocol_header.message_type);
+        msg_bin.extend_with_u16(msg.header.protocol_header.message_type);
         // Final 2 bytes of ProtocolHeader
-        self.extend_with_u16(msg.header.protocol_header.reserved_2);
+        msg_bin.extend_with_u16(msg.header.protocol_header.reserved_2);
 
         // Set packet size in first 2 bytes of packet, Frame.
-        let mut p = Header::u16_to_u8_array(self.len() as u16);
-        //let mut p = Header::u16_to_u8_array(self.0.len() as u16);
+        let mut p = MessageBin::u16_to_u8_array(msg_bin.0.len() as u16);
         p.reverse();
-        self.0[0] = p[0];
-        self.0[1] = p[1];
+        msg_bin.0[0] = p[0];
+        msg_bin.0[1] = p[1];
+        msg_bin
     }
+}
 
+impl MessageBin {
     fn bits_to_byte(bits: &[Bit]) -> u8 {
         bits.iter().fold(0, |acc, b| (acc << 1) + if *b { 1 } else { 0 } )
     }
 
     fn extend_with_bool(&mut self, field: bool) {
         // No need to reverse endianness, single byte.
-        self.0.extend_from_slice(&Packet::bool_to_u8_array(field));
+        self.0.extend_from_slice(&MessageBin::bool_to_u8_array(field));
         self.pp();
     }
 
@@ -249,7 +332,7 @@ impl Header {
     }
 
     fn extend_with_u16(&mut self, field: u16) {
-        let mut p = Packet::u16_to_u8_array(field);
+        let mut p = MessageBin::u16_to_u8_array(field);
         p.reverse();
         self.pp();
         self.0.extend_from_slice(&p);
@@ -260,7 +343,7 @@ impl Header {
         return;  
         // TODO: implement debug switch
         /*
-        println!("Packet: ");
+        println!("Message: ");
         for b in self.0.iter() {
             print!("{:x} ", b);
         }
@@ -269,14 +352,14 @@ impl Header {
     }
 
     fn extend_with_u32(&mut self, field: u32) {
-        let mut p = Packet::u32_to_u8_array(field);
+        let mut p = MessageBin::u32_to_u8_array(field);
         p.reverse();
         self.0.extend_from_slice(&p);
         self.pp();
     }
 
     fn extend_with_u64(&mut self, field: u64) {
-        let mut p = Packet::u64_to_u8_array(field);
+        let mut p = MessageBin::u64_to_u8_array(field);
         p.reverse();
         self.0.extend_from_slice(&p);
         self.pp();
@@ -316,41 +399,30 @@ impl Header {
     }
 }
 
-fn send(msg: Message) -> Result<(), io::Error> {
+fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
     let dev = true;
     let (local_ip, remote_ip) = match dev {
         true => (Ipv4Addr::new(127, 0, 0, 1), Ipv4Addr::new(127, 0, 0, 1)), 
         false => (Ipv4Addr::new(192, 168, 0, 2), Ipv4Addr::new(192, 168, 0, 5)), 
     };
 
-    //let local_ip = Ipv4Addr::new(192, 168, 0, 2);
-    //let local_ip = Ipv4Addr::new(127,0,0,1);
     let conn = SocketAddrV4::new(local_ip, 56700);
     let socket = try!(UdpSocket::bind(conn));
-
     let mut buf = [0; 100]; // for recv
 
-    //let remote_ip = Ipv4Addr::new(127,0,0,1);
-    //let remote_ip = Ipv4Addr::new(192, 168, 0, 5);
     let remote_conn = SocketAddrV4::new(remote_ip, 56700);
-
     socket.set_broadcast(true)?;
     
-    //let mut packet: Packet = Packet(vec![0u8; 0]);
-    let mut header: Header = Header::new();
-    header.build(msg);
-    let packet: Packet = Packet { Header: header };
-    
-    let p = &packet.0;
-    println!("Dec: {:?}", p);
+    let mb = &msg_bin.0;
+    println!("Dec: {:?}", mb);
 
     println!("---- Sending packet: ----");
-        for b in p.iter() {
+        for b in mb.iter() {
             print!("{:x} ", b);
         }
     println!("\n----");
 
-    try!(socket.send_to(&p, remote_conn));
+    try!(socket.send_to(&mb, remote_conn));
 
     // Read from the socket
     let (amt, src) = try!(socket.recv_from(&mut buf));
@@ -382,64 +454,71 @@ fn all_le(v: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn get_service() {
-    let msg = Message {
-        frame: Frame {
-            size: 0, 
-            origin: 0, 
-            tagged: true, 
-            addressable: true,
-            protocol: 1024, 
-            source: 321,
-        },
-        frame_address: FrameAddress {
-            //target: [0x31, 0x19, 0x95, 0x4c, 0xb9, 0xbc, 0x00, 0x00],  
-            target: [0; 8], 
-            reserved: [0; 6],
-            reserved_2: 0,
-            ack_required: false,
-            res_required: false, 
-            sequence: 156,
-        },
-        protocol_header: ProtocolHeader {
-            reserved: 0,
-            message_type: 2,
-            reserved_2: 0,
-        },
-    };
+    let frame = Frame::new(
+        0,     // origin:
+        true,  // tagged:
+        true,  // addressable:
+        1024,  // protocol:
+        321,   // source:
+    );
+    let frame_address = FrameAddress::new(
+        //target: [0x31, 0x19, 0x95, 0x4c, 0xb9, 0xbc, 0x00, 0x00],  
+        [0; 8], // target:
+        [0; 6], // reserved:
+        0,      // reserved_2:
+        false,  // ack_required:
+        false,  // res_required:
+        156,    // sequence:
+    );
+    let protocol_header = ProtocolHeader::new(
+        0,      // reserved:
+        2,      // message_type:
+        0,      // reserved_2:
+    );
 
-    match send(msg) {
+    let header = Header::new( frame, frame_address, protocol_header );
+    let payload = Payload::new();
+    let msg = Message::new(header, payload);
+    let msg_bin = MessageBin::from(msg);
+    
+    match send(msg_bin) {
         Ok(()) => println!("good send"),
         Err(e) => println!("bad send: {}", e),
     };
 }
 
 fn get_device_state() {
-    let _ = Message {
-        frame: Frame {
-            size: 0, 
-            origin: 0, 
-            tagged: false, 
-            addressable: true,
-            protocol: 1024, 
-            source: 321,
-        },
-        frame_address: FrameAddress {
-            target: [0; 8], 
-            reserved: [0; 6],
-            reserved_2: 0,
-            ack_required: false,
-            res_required: false, 
-            sequence: 156,
-        },
-        protocol_header: ProtocolHeader {
-            reserved: 0,
-            message_type: 101,
-            reserved_2: 0,
-        },
+    let frame = Frame::new(
+        0,      // origin:
+        false,  // tagged:
+        true,   // addressable:
+        1024,   // protocol:
+        321,    // source:
+    );
+    let frame_address = FrameAddress::new(
+        [0; 8], // target:
+        [0; 6], // reserved:
+        0,      // reserved_2:
+        false,  // ack_required:
+        false,  // res_required:
+        156,    // sequence:
+    );
+    let protocol_header = ProtocolHeader::new(
+        0,      // reserved:
+        101,    // message_type:
+        0,      // reserved_2:
+    );
+
+    let header = Header::new( frame, frame_address, protocol_header );
+    let payload = Payload::new();
+    let msg = Message::new(header, payload);
+    let msg_bin = MessageBin::from(msg);
+    
+    match send(msg_bin) {
+        Ok(()) => println!("good send"),
+        Err(e) => println!("bad send: {}", e),
     };
 }
-
-
 
 #[cfg(test)]
 mod tests {
