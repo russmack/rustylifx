@@ -2,6 +2,7 @@
 
 use std::io;
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
+use std::str;
 
 type Bit = bool;
 
@@ -289,7 +290,7 @@ impl From<Message> for MessageBin {
         // Final 2 bytes of ProtocolHeader
         msg_bin.extend_with_u16(msg.header.protocol_header.reserved_2);
 
-        // Set packet size in first 2 bytes of packet, Frame.
+        // Set message size in first 2 bytes of message, Frame.
         let mut p = MessageBin::u16_to_u8_array(msg_bin.0.len() as u16);
         p.reverse();
         msg_bin.0[0] = p[0];
@@ -400,7 +401,7 @@ impl MessageBin {
 }
 
 fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
-    let dev = true;
+    let dev = false;
     let (local_ip, remote_ip) = match dev {
         true => (Ipv4Addr::new(127, 0, 0, 1), Ipv4Addr::new(127, 0, 0, 1)), 
         false => (Ipv4Addr::new(192, 168, 0, 2), Ipv4Addr::new(192, 168, 0, 5)), 
@@ -408,7 +409,7 @@ fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
 
     let conn = SocketAddrV4::new(local_ip, 56700);
     let socket = try!(UdpSocket::bind(conn));
-    let mut buf = [0; 100]; // for recv
+    let mut buf = [0; 1024]; // for recv
 
     let remote_conn = SocketAddrV4::new(remote_ip, 56700);
     socket.set_broadcast(true)?;
@@ -416,10 +417,10 @@ fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
     let mb = &msg_bin.0;
     println!("Dec: {:?}", mb);
 
-    println!("---- Sending packet: ----");
-        for b in mb.iter() {
-            print!("{:x} ", b);
-        }
+    println!("---- Sending message: ----");
+    for b in mb.iter() {
+        print!("{:x} ", b);
+    }
     println!("\n----");
 
     try!(socket.send_to(&mb, remote_conn));
@@ -427,30 +428,244 @@ fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
     // Read from the socket
     let (amt, src) = try!(socket.recv_from(&mut buf));
 
-    let resp_packet = &buf[0..amt];
-    println!("Received from {} : {:?}", src, resp_packet);
+    let resp_msg = &buf[0..amt];
+    println!("Received from {} : {:?}", src, resp_msg);
 
-    parse_response(resp_packet.to_vec());
-    // let resp_obj = parse_response(resp);
-    // display_response(resp_obj);
+    let resp = parse_response(ResponseMessage(resp_msg.to_vec()));
+    display_response(resp);
 
     Ok(())
 }
 
-fn parse_response(resp: Vec<u8>) {
-    // let mut res = StateServiceMessage {
-    //     Header: 
-    // };
-    println!("Parse: {:?}", resp);
+fn display_response(resp: Response) {
+    println!("Response:");
+    println!("Size: {}", resp.size);
+    println!("Source: {:?}", resp.source);
+    println!("Mac addr: {:?}", resp.mac_address);
+    println!("Firmware: {:?}", resp.firmware);
+    // packed byte
+    println!("Sequence num: {:?}", resp.sequence_number);
+
+    println!("Reserved_1 (timestamp?): {:?}", resp.reserved_1);
+    
+    println!("Message type: {:?}", resp.message_type);
+
+    println!("Reserved_2: {:?}", resp.reserved_2);
+
+    println!("Service: {:?}", resp.service);
+    println!("Port: {:?}", resp.port);
+    println!("Unknown: {:?}", resp.unknown);
+    
 }
 
-fn all_le(v: Vec<u8>) -> Vec<u8> {
-    // TODO: implement
-    let mut le_vec: Vec<u8> = vec![];
-    for b in v {
-        le_vec.push(b.to_le());
+struct Response {
+    size: String, 
+    source: String, 
+    mac_address: String,
+    firmware: String,    
+    sequence_number: String, 
+    reserved_1: String,
+    message_type: String, 
+    reserved_2: String, 
+    service: String, 
+    port: String, 
+    unknown: String, 
+}
+
+fn parse_response(resp: ResponseMessage) -> Response {
+    let mut response = Response {
+        size: "".to_string(),
+        source: "".to_string(), 
+        mac_address: "".to_string(), 
+        firmware: "".to_string(), 
+        sequence_number: "".to_string(), 
+        reserved_1: "".to_string(),
+        message_type: "".to_string(), 
+        reserved_2: "".to_string(), 
+        service: "".to_string(), 
+        port: "".to_string(),
+        unknown: "".to_string(), 
+    };
+
+    response.size = ResponseMessage::size(&resp);
+    response.source = ResponseMessage::source(&resp);
+    response.mac_address = ResponseMessage::mac_address(&resp);
+    response.firmware = ResponseMessage::firmware(&resp);
+
+    // TODO: packed byte
+
+    response.sequence_number = ResponseMessage::sequence_number(&resp);
+
+    // Message segment: protocol header
+    response.reserved_1 = ResponseMessage::reserved_1(&resp);  // timestamp?
+    response.message_type = ResponseMessage::message_type(&resp);
+    response.reserved_2 = ResponseMessage::reserved_2(&resp);
+    // Message segment: payload
+    response.service = ResponseMessage::service(&resp);
+    response.port = ResponseMessage::port(&resp);
+    response.unknown = ResponseMessage::unknown(&resp);
+
+    response
+}
+
+struct ResponseMessage(Vec<u8>);
+
+impl ResponseMessage {
+    fn size(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 0, 2);
+        b.reverse();
+        as_base10(b)
     }
-    le_vec
+
+    fn source(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 4, 4);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
+    }
+
+    fn mac_address(resp: &ResponseMessage) -> String {
+        as_hex(extract(&resp, 8, 8))
+    }
+
+    fn firmware(resp: &ResponseMessage) -> String {
+        as_ascii(extract(&resp, 16, 6))
+    }
+
+    fn sequence_number(resp: &ResponseMessage) -> String {
+        as_base10(extract(&resp, 23, 1))
+    }
+
+    fn reserved_1(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 24, 8);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
+    }
+    
+    fn message_type(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 32, 2);
+        b.reverse();
+        as_base10(b)
+    }
+    
+    fn reserved_2(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 34, 2);
+        as_base10(b)  // TODO: may not be base10, but undocumented.
+    }
+
+    fn service(resp: &ResponseMessage) -> String {
+        as_base10(extract(&resp, 36, 1))
+    }
+
+    fn port(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 37, 2);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
+    }
+
+    fn unknown(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 39, 2);
+        as_base10(b)  // TODO: may not be base10, but undocumented.
+    }
+}
+
+fn extract(resp: &ResponseMessage, start: usize, len: usize) -> Vec<u8> {
+    let mut sub = vec![0u8; len];
+    sub[..len].clone_from_slice(&resp.0[start..start+len]);
+    sub
+}
+
+fn as_base10(v: Vec<u8>) -> String {
+    let mut s = "".to_string();
+    for b in v {
+        s.push_str(format!("{}", b).as_str());
+    }
+    let n = s.parse::<u16>().unwrap();
+    n.to_string()
+}
+
+fn as_ascii(arr: Vec<u8>) -> String {
+    str::from_utf8(&arr).unwrap().to_string()
+}
+
+fn as_boolean(v: Vec<u8>) -> String {
+    let mut s = "".to_string();
+    for b in v {
+        s.push_str(format!("{:08b}", b).as_str());
+    }
+    s
+}
+
+fn as_hex(arr: Vec<u8>) -> String {
+    let mut s: Vec<String> = vec![];
+    for b in arr {
+        s.push(format!("{:02X}", b));
+    }
+    s.join(":")
+}
+
+fn array_segment_to_string(arr: &[u8], lbound: usize, ubound: usize, reverse: bool) -> String {
+    let len: usize = ubound - lbound;
+    let mut sub = vec![0u8; len];
+    sub[..len].clone_from_slice(&arr[lbound..ubound]);
+
+    if reverse {
+        sub.reverse();
+    }
+
+    String::from_utf8_lossy(&sub).into_owned()
+}
+
+fn bitstr_to_u32(bits: &str) -> u32 {
+    bits.as_bytes().iter().fold(0, |acc, b | {
+        (acc << 1) + if *b == 48 { 0 } else { 1 }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super:: {
+        ResponseMessage,
+        extract,
+        as_base10,
+        as_ascii,
+        as_boolean,
+        as_hex,
+        bitstr_to_u32,
+    };
+
+    #[test]
+    fn test_extract() {
+        let resp = ResponseMessage(vec![41, 42, 43, 44, 45, 46, 47, 48, 49]);
+        assert_eq!(extract(&resp, 2, 3), vec![43, 44, 45]);
+    }
+
+    #[test]
+    fn test_as_base10() {
+        assert_eq!(as_base10(vec![00, 41]), "41");
+    }
+
+    #[test]
+    fn test_as_boolean() {
+        assert_eq!(as_boolean(vec![221, 124]), "1101110101111100");
+    }
+
+    #[test]
+    fn test_bitstr_to_u32() {
+        assert_eq!(bitstr_to_u32("1101110101111100"), 56700);
+    }
+
+    #[test]
+    fn test_as_ascii() {
+        assert_eq!(as_ascii(vec![76, 73, 70, 88, 86, 50]), "LIFXV2");
+    }
+
+    #[test]
+    fn test_from_hex() {
+        assert_eq!(as_hex(vec![209, 114, 214, 20, 224, 14, 0, 0]), "D1:72:D6:14:E0:0E:00:00");
+    }
 }
 
 pub fn get_service() {
@@ -520,9 +735,3 @@ fn get_device_state() {
     };
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
