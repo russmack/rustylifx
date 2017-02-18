@@ -400,7 +400,8 @@ impl MessageBin {
     }
 }
 
-fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
+fn send(msg_bin: MessageBin) -> Result<Response, io::Error> {
+//fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
     let dev = false;
     let (local_ip, remote_ip) = match dev {
         true => (Ipv4Addr::new(127, 0, 0, 1), Ipv4Addr::new(127, 0, 0, 1)), 
@@ -432,44 +433,22 @@ fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
     println!("Received from {} : {:?}", src, resp_msg);
 
     let resp = parse_response(ResponseMessage(resp_msg.to_vec()));
-    display_response(resp);
 
-    Ok(())
+    Ok(resp)
 }
 
-fn display_response(resp: Response) {
-    println!("Response:");
-    println!("Size: {}", resp.size);
-    println!("Source: {:?}", resp.source);
-    println!("Mac addr: {:?}", resp.mac_address);
-    println!("Firmware: {:?}", resp.firmware);
-    // packed byte
-    println!("Sequence num: {:?}", resp.sequence_number);
-
-    println!("Reserved_1 (timestamp?): {:?}", resp.reserved_1);
-    
-    println!("Message type: {:?}", resp.message_type);
-
-    println!("Reserved_2: {:?}", resp.reserved_2);
-
-    println!("Service: {:?}", resp.service);
-    println!("Port: {:?}", resp.port);
-    println!("Unknown: {:?}", resp.unknown);
-    
-}
-
-struct Response {
-    size: String, 
-    source: String, 
-    mac_address: String,
-    firmware: String,    
-    sequence_number: String, 
-    reserved_1: String,
-    message_type: String, 
-    reserved_2: String, 
-    service: String, 
-    port: String, 
-    unknown: String, 
+pub struct Response {
+    pub size: String, 
+    pub source: String, 
+    pub mac_address: String,
+    pub firmware: String,    
+    pub sequence_number: String, 
+    pub reserved_1: String,
+    pub message_type: String, 
+    pub reserved_2: String, 
+    pub service: String, 
+    pub port: String, 
+    pub unknown: String, 
 }
 
 fn parse_response(resp: ResponseMessage) -> Response {
@@ -550,7 +529,7 @@ impl ResponseMessage {
     }
     
     fn reserved_2(resp: &ResponseMessage) -> String {
-        let mut b = extract(&resp, 34, 2);
+        let b = extract(&resp, 34, 2);
         as_base10(b)  // TODO: may not be base10, but undocumented.
     }
 
@@ -566,7 +545,7 @@ impl ResponseMessage {
     }
 
     fn unknown(resp: &ResponseMessage) -> String {
-        let mut b = extract(&resp, 39, 2);
+        let b = extract(&resp, 39, 2);
         as_base10(b)  // TODO: may not be base10, but undocumented.
     }
 }
@@ -668,7 +647,7 @@ mod tests {
     }
 }
 
-pub fn get_service() {
+pub fn get_service() -> Result<Response, io::Error> {
     let frame = Frame::new(
         0,     // origin:
         true,  // tagged:
@@ -696,13 +675,20 @@ pub fn get_service() {
     let msg = Message::new(header, payload);
     let msg_bin = MessageBin::from(msg);
     
-    match send(msg_bin) {
-        Ok(()) => println!("good send"),
-        Err(e) => println!("bad send: {}", e),
+    let resp = match send(msg_bin) {
+        Ok(r) => {
+            println!("good send");
+            Ok(r)
+        },
+        Err(e) => {
+            println!("bad send: {}", e);
+            Err(e)
+        },
     };
+    resp
 }
 
-fn get_device_state() {
+fn get_device_state() -> Result<Response, io::Error> {
     let frame = Frame::new(
         0,      // origin:
         false,  // tagged:
@@ -729,9 +715,16 @@ fn get_device_state() {
     let msg = Message::new(header, payload);
     let msg_bin = MessageBin::from(msg);
     
-    match send(msg_bin) {
-        Ok(()) => println!("good send"),
-        Err(e) => println!("bad send: {}", e),
+    let resp = match send(msg_bin) {
+        Ok(r) => {
+            println!("good send");
+            Ok(r)
+        },
+        Err(e) => {
+            println!("bad send: {}", e);
+            Err(e)
+        },
     };
+    resp
 }
 

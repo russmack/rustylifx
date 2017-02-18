@@ -17,7 +17,7 @@ cargo run --example main
 ## Features
 
 - [X] Send and receive get_service()
-- [ ] Parse get_service() response
+- [X] Parse get_service() response
 - [ ] Change bulb colour
 
 ## License
