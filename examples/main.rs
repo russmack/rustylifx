@@ -1,11 +1,21 @@
 extern crate rustylifx;
 
+use std::time::Duration;
+use std::thread;
 
 fn main() {
     println!("Started.");
     let resp = rustylifx::get_service().unwrap();
-    display_response(resp);
-    println!("Finished.");
+    println!("\nState service: {:?}", resp);
+    println!("==========\n");
+    //display_response(resp);
+
+    thread::sleep(Duration::from_millis(1000));
+    let resp2 = rustylifx::get_device_state().unwrap();
+    println!("\nState: {:?}", resp2);
+    println!("==========");
+    //display_response(resp2);
+    println!("\nFinished.");
 }
 
 fn display_response(resp: rustylifx::Response) {
@@ -23,8 +33,8 @@ fn display_response(resp: rustylifx::Response) {
 
     println!("Reserved_2: {:?}", resp.reserved_2);
 
-    println!("Service: {:?}", resp.service);
-    println!("Port: {:?}", resp.port);
-    println!("Unknown: {:?}", resp.unknown);
+    //println!("Service: {:?}", resp.service);
+    //println!("Port: {:?}", resp.port);
+    //println!("Unknown: {:?}", resp.unknown);
     
 }

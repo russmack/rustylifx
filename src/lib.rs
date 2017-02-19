@@ -8,12 +8,15 @@ type Bit = bool;
 
 struct Message {
     header: Header, 
-    payload: Payload,
+    //payload: Payload,
 }
 
 impl Message {
-    pub fn new(header: Header, payload: Payload) -> Message {
+    /*pub fn new(header: Header, payload: Payload) -> Message {
         Message {header: header, payload: payload}
+    }*/
+    pub fn new(header: Header) -> Message {
+        Message {header: header}
     }
 }
 
@@ -34,16 +37,6 @@ impl Header {
                 frame_address: frame_address, 
                 protocol_header: protocol_header, 
         }
-    }
-}
-
-// TODO: This varies from message type to message type
-// Payload newtype
-struct Payload(Vec<u8>);
-
-impl Payload {
-    pub fn new() -> Payload {
-        Payload(vec![])
     }
 }
 
@@ -401,9 +394,8 @@ impl MessageBin {
 }
 
 fn send(msg_bin: MessageBin) -> Result<Response, io::Error> {
-//fn send(msg_bin: MessageBin) -> Result<(), io::Error> {
-    let dev = false;
-    let (local_ip, remote_ip) = match dev {
+    let is_dev = false;
+    let (local_ip, remote_ip) = match is_dev {
         true => (Ipv4Addr::new(127, 0, 0, 1), Ipv4Addr::new(127, 0, 0, 1)), 
         false => (Ipv4Addr::new(192, 168, 0, 2), Ipv4Addr::new(192, 168, 0, 5)), 
     };
@@ -416,9 +408,10 @@ fn send(msg_bin: MessageBin) -> Result<Response, io::Error> {
     socket.set_broadcast(true)?;
     
     let mb = &msg_bin.0;
-    println!("Dec: {:?}", mb);
 
     println!("---- Sending message: ----");
+    println!("Dec: {:?}", mb);
+    print!("Bytes: ");
     for b in mb.iter() {
         print!("{:x} ", b);
     }
@@ -430,13 +423,14 @@ fn send(msg_bin: MessageBin) -> Result<Response, io::Error> {
     let (amt, src) = try!(socket.recv_from(&mut buf));
 
     let resp_msg = &buf[0..amt];
-    println!("Received from {} : {:?}", src, resp_msg);
+    println!("Received from {} : \n{:?}", src, resp_msg);
 
     let resp = parse_response(ResponseMessage(resp_msg.to_vec()));
 
     Ok(resp)
 }
 
+#[derive(Debug)]
 pub struct Response {
     pub size: String, 
     pub source: String, 
@@ -446,45 +440,81 @@ pub struct Response {
     pub reserved_1: String,
     pub message_type: String, 
     pub reserved_2: String, 
-    pub service: String, 
-    pub port: String, 
-    pub unknown: String, 
+    pub payload: Payload,
 }
 
-fn parse_response(resp: ResponseMessage) -> Response {
-    let mut response = Response {
-        size: "".to_string(),
-        source: "".to_string(), 
-        mac_address: "".to_string(), 
-        firmware: "".to_string(), 
-        sequence_number: "".to_string(), 
-        reserved_1: "".to_string(),
-        message_type: "".to_string(), 
-        reserved_2: "".to_string(), 
-        service: "".to_string(), 
-        port: "".to_string(),
-        unknown: "".to_string(), 
+fn parse_response(resp_msg: ResponseMessage) -> Response {
+    let mut resp = parse_header(&resp_msg);
+
+    let payload = match resp.message_type.as_str() {
+        "3" => parse_payload_3(&resp_msg), 
+        "107" => parse_payload_107(&resp_msg),
+        _ => Payload::None(()),
     };
 
-    response.size = ResponseMessage::size(&resp);
-    response.source = ResponseMessage::source(&resp);
-    response.mac_address = ResponseMessage::mac_address(&resp);
-    response.firmware = ResponseMessage::firmware(&resp);
+    resp.payload = payload;
 
-    // TODO: packed byte
+    resp
+}
 
-    response.sequence_number = ResponseMessage::sequence_number(&resp);
+fn parse_header(resp: &ResponseMessage) -> Response {
+    Response {
+        size: ResponseMessage::size(&resp),
+        source: ResponseMessage::source(&resp),
+        mac_address: ResponseMessage::mac_address(&resp),
+        firmware: ResponseMessage::firmware(&resp),
 
-    // Message segment: protocol header
-    response.reserved_1 = ResponseMessage::reserved_1(&resp);  // timestamp?
-    response.message_type = ResponseMessage::message_type(&resp);
-    response.reserved_2 = ResponseMessage::reserved_2(&resp);
-    // Message segment: payload
-    response.service = ResponseMessage::service(&resp);
-    response.port = ResponseMessage::port(&resp);
-    response.unknown = ResponseMessage::unknown(&resp);
+        // TODO: packed byte
 
-    response
+        sequence_number: ResponseMessage::sequence_number(&resp),
+
+        // Message segment: protocol header
+        reserved_1: ResponseMessage::reserved_1(&resp),  // timestamp?
+        message_type: ResponseMessage::message_type(&resp),
+        reserved_2: ResponseMessage::reserved_2(&resp),
+        payload: Payload::None(()),
+    }
+}
+
+#[derive(Debug)]
+pub enum Payload {
+    None(()),
+    StateService(StateServicePayload),
+    State(StatePayload),
+}
+
+#[derive(Debug)]
+pub struct StateServicePayload {
+    service: String, 
+    port: String, 
+    unknown: String,
+}
+
+#[derive(Debug)]
+pub struct StatePayload {
+    body: String,
+    hue: String,
+    saturation: String,
+    brightness: String,
+    kelvin: String,
+}
+
+fn parse_payload_3(resp: &ResponseMessage) -> Payload {
+    Payload::StateService(StateServicePayload {
+        service: ResponseMessage::service(&resp),
+        port: ResponseMessage::port(&resp),
+        unknown: ResponseMessage::unknown(&resp),
+    })
+}
+
+fn parse_payload_107(resp: &ResponseMessage) -> Payload {
+    Payload::State(StatePayload {
+        body: ResponseMessage::body(&resp),
+        hue: ResponseMessage::hue(&resp),
+        saturation: ResponseMessage::saturation(&resp),
+        brightness: ResponseMessage::brightness(&resp),
+        kelvin: ResponseMessage::kelvin(&resp),
+    })
 }
 
 struct ResponseMessage(Vec<u8>);
@@ -545,8 +575,43 @@ impl ResponseMessage {
     }
 
     fn unknown(resp: &ResponseMessage) -> String {
-        let b = extract(&resp, 39, 2);
-        as_base10(b)  // TODO: may not be base10, but undocumented.
+        let end = resp.0.len() - 39;
+        let b = extract(&resp, 39, end);
+        //as_base10(b)  // TODO: may not be base10, but undocumented.
+        as_hex(b)
+    }
+
+    fn body(resp: &ResponseMessage) -> String {
+        let end = resp.0.len() - 36;
+        as_hex(extract(&resp, 36, end))
+    }
+
+    fn hue(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 36, 2);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
+    }
+
+    fn saturation(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 38, 2);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
+    }
+
+    fn brightness(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 40, 2);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
+    }
+
+    fn kelvin(resp: &ResponseMessage) -> String {
+        let mut b = extract(&resp, 42, 2);
+        b.reverse();
+        let bstr = as_boolean(b);
+        bitstr_to_u32(&bstr).to_string()
     }
 }
 
@@ -671,8 +736,9 @@ pub fn get_service() -> Result<Response, io::Error> {
     );
 
     let header = Header::new( frame, frame_address, protocol_header );
-    let payload = Payload::new();
-    let msg = Message::new(header, payload);
+    //let payload = Payload::new();
+    //let msg = Message::new(header, payload);
+    let msg = Message::new(header);
     let msg_bin = MessageBin::from(msg);
     
     let resp = match send(msg_bin) {
@@ -688,7 +754,7 @@ pub fn get_service() -> Result<Response, io::Error> {
     resp
 }
 
-fn get_device_state() -> Result<Response, io::Error> {
+pub fn get_device_state() -> Result<Response, io::Error> {
     let frame = Frame::new(
         0,      // origin:
         false,  // tagged:
@@ -711,8 +777,9 @@ fn get_device_state() -> Result<Response, io::Error> {
     );
 
     let header = Header::new( frame, frame_address, protocol_header );
-    let payload = Payload::new();
-    let msg = Message::new(header, payload);
+    //let payload = Payload::new();
+    //let msg = Message::new(header, payload);
+    let msg = Message::new(header);
     let msg_bin = MessageBin::from(msg);
     
     let resp = match send(msg_bin) {
