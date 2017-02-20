@@ -5,20 +5,20 @@ use std::thread;
 
 fn main() {
     println!("Started.");
-    let resp = rustylifx::get_service().unwrap();
+    let resp = rustylifx::request::get_service().unwrap();
     println!("\nState service: {:?}", resp);
     println!("==========\n");
     //display_response(resp);
 
     thread::sleep(Duration::from_millis(1000));
-    let resp2 = rustylifx::get_device_state().unwrap();
+    let resp2 = rustylifx::request::get_device_state().unwrap();
     println!("\nState: {:?}", resp2);
     println!("==========");
     //display_response(resp2);
     println!("\nFinished.");
 }
 
-fn display_response(resp: rustylifx::Response) {
+fn display_response(resp: rustylifx::response::Response) {
     println!("Response:");
     println!("Size: {}", resp.size);
     println!("Source: {:?}", resp.source);
