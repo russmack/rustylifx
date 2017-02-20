@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["russ"]
 
 [dependencies]
+
+[dependency.bencoderus]
+path = "~/prog/rust/github.com/russmack/bencoderus"
