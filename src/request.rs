@@ -11,17 +11,16 @@ type Bit = bool;
 
 struct Request {
     header: Header, 
-    //payload: Payload,
+    payload: Payload,
 }
 
 impl Request {
-    /*pub fn new(header: Header, payload: Payload) -> Request {
+    pub fn new(header: Header, payload: Payload) -> Request {
         Request {header: header, payload: payload}
-    }*/
-    pub fn new(header: Header) -> Request {
-        Request {header: header}
     }
 }
+
+struct Payload(Vec<u8>);
 
 // RequestBin newtype
 struct RequestBin(Vec<u8>);
@@ -286,6 +285,26 @@ impl From<Request> for RequestBin {
         // Final 2 bytes of ProtocolHeader
         msg_bin.extend_with_u16(msg.header.protocol_header.reserved_2);
 
+        // Append payload if required.
+        if msg.header.protocol_header.message_type == 102 {
+            msg_bin.extend_with_u8(msg.payload.0[ .. 1][0]);
+            let mut p_arr_h = [0u8; 2];
+            let mut p_arr_s = [0u8; 2];
+            let mut p_arr_b = [0u8; 2];
+            let mut p_arr_k = [0u8; 2];
+            let mut p_arr_d = [0u8; 4];
+            p_arr_h.clone_from_slice(&msg.payload.0[1 .. 3]);
+            p_arr_s.clone_from_slice(&msg.payload.0[3 .. 5]);
+            p_arr_b.clone_from_slice(&msg.payload.0[5 .. 7]);
+            p_arr_k.clone_from_slice(&msg.payload.0[7 .. 9]);
+            p_arr_d.clone_from_slice(&msg.payload.0[9 .. 13]);
+            msg_bin.extend_with_u8_array_2(p_arr_h);
+            msg_bin.extend_with_u8_array_2(p_arr_s);
+            msg_bin.extend_with_u8_array_2(p_arr_b);
+            msg_bin.extend_with_u8_array_2(p_arr_k);
+            msg_bin.extend_with_u8_array_4(p_arr_d);
+        }
+
         // Set message size in first 2 bytes of request, Frame.
         let mut p = RequestBin::u16_to_u8_array(msg_bin.0.len() as u16);
         p.reverse();
@@ -321,6 +340,22 @@ impl RequestBin {
     }
 
     fn extend_with_u8_array_6(&mut self, mut field: [u8; 6]) {
+        field.reverse();
+        for b in field.iter() {
+            self.0.extend_from_slice(&[*b]);
+        }
+        self.pp();
+    }
+
+    fn extend_with_u8_array_4(&mut self, mut field: [u8; 4]) {
+        field.reverse();
+        for b in field.iter() {
+            self.0.extend_from_slice(&[*b]);
+        }
+        self.pp();
+    }
+
+    fn extend_with_u8_array_2(&mut self, mut field: [u8; 2]) {
         field.reverse();
         for b in field.iter() {
             self.0.extend_from_slice(&[*b]);
@@ -492,9 +527,8 @@ pub fn get_service() -> Result<Response, io::Error> {
     );
 
     let header = Header::new( frame, frame_address, protocol_header );
-    //let payload = Payload::new();
-    //let msg = Request::new(header, payload);
-    let msg = Request::new(header);
+    let payload = Payload(vec![]);
+    let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
     
     let resp = match send(msg_bin) {
@@ -533,9 +567,8 @@ pub fn get_device_state() -> Result<Response, io::Error> {
     );
 
     let header = Header::new( frame, frame_address, protocol_header );
-    //let payload = Payload::new();
-    //let msg = Request::new(header, payload);
-    let msg = Request::new(header);
+    let payload = Payload(vec![]);
+    let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
     
     let resp = match send(msg_bin) {
@@ -551,8 +584,7 @@ pub fn get_device_state() -> Result<Response, io::Error> {
     resp
 }
 
-/*
-pub fn set_device_state() -> Result<Response, io::Error> {
+pub fn set_device_state(colour: u16, interval: u32) -> Result<Response, io::Error> {
     let frame = Frame::new(
         0,      // origin:
         false,  // tagged:
@@ -575,9 +607,9 @@ pub fn set_device_state() -> Result<Response, io::Error> {
     );
 
     let header = Header::new( frame, frame_address, protocol_header );
-    //let payload = Payload::new();
-    //let msg = Request::new(header, payload);
-    let msg = Request::new(header);
+    let payload = Payload(vec![
+        0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x13, 0x88]);
+    let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
     
     let resp = match send(msg_bin) {
@@ -592,4 +624,3 @@ pub fn set_device_state() -> Result<Response, io::Error> {
     };
     resp
 }
-*/

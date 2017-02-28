@@ -15,6 +15,10 @@ fn main() {
     println!("\nState: {:?}", resp2);
     println!("==========");
     //display_response(resp2);
+
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(1234, 1000);
+
     println!("\nFinished.");
 }
 
