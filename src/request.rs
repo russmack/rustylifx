@@ -606,9 +606,12 @@ pub fn set_device_state(colour: u16, interval: u32) -> Result<Response, io::Erro
         0,      // reserved_2:
     );
 
+    // eg. vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
+    let duration = RequestBin::u32_to_u8_array(interval);
     let header = Header::new( frame, frame_address, protocol_header );
-    let payload = Payload(vec![
-        0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x13, 0x88]);
+    let mut payload_vec = vec![ 0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA];
+    payload_vec.append(&mut duration.to_vec());
+    let payload = Payload(payload_vec);
     let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
     
