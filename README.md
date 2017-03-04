@@ -2,11 +2,10 @@
 
 A Rust library implementing the LIFX smart lightbulb protocol.
 
-![Progress](http://progressed.io/bar/10?title=Underway)
 [![Build Status](https://travis-ci.org/russmack/rustylifx.svg?branch=master)](https://travis-ci.org/russmack/rustylifx)
 
 ---
-#### Status: prototype.
+#### Status: underway.
 ---
 
 ## Usage
