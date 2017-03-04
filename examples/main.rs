@@ -17,7 +17,7 @@ fn main() {
     //display_response(resp2);
 
     thread::sleep(Duration::from_millis(1000));
-    rustylifx::request::set_device_state(1234, 1000);
+    rustylifx::request::set_device_state(100, 65000, 65000, 1000, 1000);
 
     println!("\nFinished.");
 }

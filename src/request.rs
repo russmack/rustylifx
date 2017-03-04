@@ -10,13 +10,16 @@ use response::Response;
 type Bit = bool;
 
 struct Request {
-    header: Header, 
+    header: Header,
     payload: Payload,
 }
 
 impl Request {
     pub fn new(header: Header, payload: Payload) -> Request {
-        Request {header: header, payload: payload}
+        Request {
+            header: header,
+            payload: payload,
+        }
     }
 }
 
@@ -26,58 +29,56 @@ struct Payload(Vec<u8>);
 struct RequestBin(Vec<u8>);
 
 struct Header {
-    frame: Frame, 
-    frame_address: FrameAddress, 
-    protocol_header: ProtocolHeader, 
+    frame: Frame,
+    frame_address: FrameAddress,
+    protocol_header: ProtocolHeader,
 }
 
 impl Header {
-    pub fn new( frame: Frame, 
-                frame_address: FrameAddress, 
-                protocol_header: ProtocolHeader) -> Header {
-        Header {frame: frame, 
-                frame_address: frame_address, 
-                protocol_header: protocol_header, 
+    pub fn new(frame: Frame,
+               frame_address: FrameAddress,
+               protocol_header: ProtocolHeader)
+               -> Header {
+        Header {
+            frame: frame,
+            frame_address: frame_address,
+            protocol_header: protocol_header,
         }
     }
 }
 
 struct Frame {
     // First 2 bytes
-    size: u16, 
+    size: u16,
 
     // Second two bytes
-    origin: u8, 
+    origin: u8,
     // For discovery using Device::GetService use true and target all zeroes.
     // For all other requests set to false and target to device MAC address.
-    tagged: bool, 
-    addressable: bool,  // Must be true
-    protocol: u16,  // Must be 1024
+    tagged: bool,
+    addressable: bool, // Must be true
+    protocol: u16, // Must be 1024
 
     // Final 4 bytes
     source: u32,
 }
 
 impl Frame {
-    pub fn new( origin: u8, 
-                tagged: bool, 
-                addressable: bool, 
-                protocol: u16, 
-                source: u32) -> Frame {
+    pub fn new(origin: u8, tagged: bool, addressable: bool, protocol: u16, source: u32) -> Frame {
         Frame {
-            size: 0, 
-            origin: origin, 
-            tagged: tagged, 
-            addressable: addressable, 
-            protocol: protocol, 
-            source: source, 
+            size: 0,
+            origin: origin,
+            tagged: tagged,
+            addressable: addressable,
+            protocol: protocol,
+            source: source,
         }
     }
 }
 
 struct FrameAddress {
     // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
-    target: [u8; 8],  
+    target: [u8; 8],
     reserved: [u8; 6],
     reserved_2: u8,
     ack_required: bool,
@@ -86,19 +87,20 @@ struct FrameAddress {
 }
 
 impl FrameAddress {
-    pub fn new( target: [u8; 8], 
-                reserved: [u8; 6], 
-                reserved_2: u8, 
-                ack_required: bool, 
-                res_required: bool, 
-                sequence: u8) -> FrameAddress {
+    pub fn new(target: [u8; 8],
+               reserved: [u8; 6],
+               reserved_2: u8,
+               ack_required: bool,
+               res_required: bool,
+               sequence: u8)
+               -> FrameAddress {
         FrameAddress {
-            target: target, 
-            reserved: reserved, 
-            reserved_2: reserved_2, 
-            ack_required: ack_required, 
-            res_required: res_required, 
-            sequence: sequence, 
+            target: target,
+            reserved: reserved,
+            reserved_2: reserved_2,
+            ack_required: ack_required,
+            res_required: res_required,
+            sequence: sequence,
         }
     }
 }
@@ -110,12 +112,10 @@ struct ProtocolHeader {
 }
 
 impl ProtocolHeader {
-    pub fn new( reserved: u64, 
-                message_type: u16, 
-                reserved_2: u16) -> ProtocolHeader {
+    pub fn new(reserved: u64, message_type: u16, reserved_2: u16) -> ProtocolHeader {
         ProtocolHeader {
-            reserved: reserved, 
-            message_type: message_type, 
+            reserved: reserved,
+            message_type: message_type,
             reserved_2: reserved_2,
         }
     }
@@ -124,16 +124,16 @@ impl ProtocolHeader {
 // BitFrame is an intermediate representation.
 struct BitFrame {
     // First 2 bytes
-    size: u16, 
+    size: u16,
 
     // Second two bytes
-    origin: BitOrigin, 
+    origin: BitOrigin,
 
     // For discovery using Device::GetService use true and target all zeroes.
     // For all other requests set to false and target to device MAC address.
-    tagged: Bit, 
-    addressable: Bit,       // Must be true
-    protocol: BitProtocol,  // Must be 1024
+    tagged: Bit,
+    addressable: Bit, // Must be true
+    protocol: BitProtocol, // Must be 1024
 
     // Final 4 bytes
     source: u32,
@@ -143,18 +143,18 @@ impl<'a> From<&'a Frame> for BitFrame {
     fn from(f: &Frame) -> BitFrame {
         BitFrame {
             // First two bytes
-            size: f.size, 
+            size: f.size,
 
             // Second two bytes
             origin: BitOrigin::from(f.origin),
-            tagged: f.tagged, 
-            addressable: f.addressable, 
+            tagged: f.tagged,
+            addressable: f.addressable,
             protocol: BitProtocol::from(f.protocol),
 
             // Final four bytes
             source: f.source,
         }
-    } 
+    }
 }
 
 // BitOrigin newtype
@@ -164,12 +164,11 @@ impl From<u8> for BitOrigin {
     // Format as zero padded boolean string.
     // Convert boolean string to vec of bools
     fn from(o: u8) -> BitOrigin {
-        let s = format!("{:02b}", o);  
-        let v: Vec<Bit> = s.as_bytes().iter().map(
-            |&n|
-                if n == 49 { true }
-                else { false }
-            ).collect();
+        let s = format!("{:02b}", o);
+        let v: Vec<Bit> = s.as_bytes()
+            .iter()
+            .map(|&n| if n == 49 { true } else { false })
+            .collect();
         BitOrigin([v[0], v[1]])
     }
 }
@@ -180,22 +179,18 @@ struct BitProtocol([Bit; 12]);
 impl From<u16> for BitProtocol {
     fn from(p: u16) -> BitProtocol {
         let s = format!("{:012b}", p);
-        let v: Vec<Bit> = s.as_bytes().iter().map(
-            |&n|
-                if n == 49 { true }
-                else { false }
-            ).collect();
-        BitProtocol([
-            v[0], v[1], v[2], v[3],  v[4],  v[5],  
-            v[6], v[7], v[8], v[9], v[10], v[11], 
-        ])
+        let v: Vec<Bit> = s.as_bytes()
+            .iter()
+            .map(|&n| if n == 49 { true } else { false })
+            .collect();
+        BitProtocol([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11]])
     }
 }
 
 
 struct BitFrameAddress {
     // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
-    target: [u8; 8],  
+    target: [u8; 8],
     reserved: [u8; 6],
     reserved_2: [Bit; 6],
     ack_required: Bit,
@@ -206,19 +201,18 @@ struct BitFrameAddress {
 impl<'a> From<&'a FrameAddress> for BitFrameAddress {
     fn from(f: &FrameAddress) -> BitFrameAddress {
         BitFrameAddress {
-            target: f.target, 
-            reserved: f.reserved, 
+            target: f.target,
+            reserved: f.reserved,
             reserved_2: {
                 let s = format!("{:06b}", f.reserved_2);
-                let v: Vec<bool> = s.as_bytes().iter().map(|&n|
-                    if n == 49 { true }
-                    else { false }).collect();
-                let a: [Bit; 6] = [
-                    v[0], v[1], v[2], v[3],  v[4],  v[5],
-                ];
+                let v: Vec<bool> = s.as_bytes()
+                    .iter()
+                    .map(|&n| if n == 49 { true } else { false })
+                    .collect();
+                let a: [Bit; 6] = [v[0], v[1], v[2], v[3], v[4], v[5]];
                 a
-            }, 
-            ack_required: f.ack_required, 
+            },
+            ack_required: f.ack_required,
             res_required: f.res_required,
             sequence: f.sequence,
         }
@@ -233,15 +227,15 @@ impl From<Request> for RequestBin {
         msg_bin.extend_with_u16(msg.header.frame.size);
 
         // Second 2 bytes of Frame
-        let bitframe = BitFrame::from(&msg.header.frame);        
-        
+        let bitframe = BitFrame::from(&msg.header.frame);
+
         let mut fr_pt2: [Bit; 16] = [false; 16];
         fr_pt2[0] = bitframe.origin.0[0];
         fr_pt2[1] = bitframe.origin.0[1];
         fr_pt2[2] = bitframe.tagged;
-        fr_pt2[3] = bitframe.addressable; 
+        fr_pt2[3] = bitframe.addressable;
         for i in 0..bitframe.protocol.0.len() {
-            fr_pt2[i+4] = bitframe.protocol.0[i];
+            fr_pt2[i + 4] = bitframe.protocol.0[i];
         }
 
         let (fr_pt2_a_bits, fr_pt2_b_bits) = fr_pt2.split_at(8);
@@ -287,17 +281,17 @@ impl From<Request> for RequestBin {
 
         // Append payload if required.
         if msg.header.protocol_header.message_type == 102 {
-            msg_bin.extend_with_u8(msg.payload.0[ .. 1][0]);
+            msg_bin.extend_with_u8(msg.payload.0[..1][0]);
             let mut p_arr_h = [0u8; 2];
             let mut p_arr_s = [0u8; 2];
             let mut p_arr_b = [0u8; 2];
             let mut p_arr_k = [0u8; 2];
             let mut p_arr_d = [0u8; 4];
-            p_arr_h.clone_from_slice(&msg.payload.0[1 .. 3]);
-            p_arr_s.clone_from_slice(&msg.payload.0[3 .. 5]);
-            p_arr_b.clone_from_slice(&msg.payload.0[5 .. 7]);
-            p_arr_k.clone_from_slice(&msg.payload.0[7 .. 9]);
-            p_arr_d.clone_from_slice(&msg.payload.0[9 .. 13]);
+            p_arr_h.clone_from_slice(&msg.payload.0[1..3]);
+            p_arr_s.clone_from_slice(&msg.payload.0[3..5]);
+            p_arr_b.clone_from_slice(&msg.payload.0[5..7]);
+            p_arr_k.clone_from_slice(&msg.payload.0[7..9]);
+            p_arr_d.clone_from_slice(&msg.payload.0[9..13]);
             msg_bin.extend_with_u8_array_2(p_arr_h);
             msg_bin.extend_with_u8_array_2(p_arr_s);
             msg_bin.extend_with_u8_array_2(p_arr_b);
@@ -316,7 +310,7 @@ impl From<Request> for RequestBin {
 
 impl RequestBin {
     fn bits_to_byte(bits: &[Bit]) -> u8 {
-        bits.iter().fold(0, |acc, b| (acc << 1) + if *b { 1 } else { 0 } )
+        bits.iter().fold(0, |acc, b| (acc << 1) + if *b { 1 } else { 0 })
     }
 
     fn extend_with_bool(&mut self, field: bool) {
@@ -372,15 +366,16 @@ impl RequestBin {
     }
 
     fn pp(&self) {
-        return;  
+        return;
         // TODO: implement debug switch
-        /*
-        println!("Request: ");
-        for b in self.0.iter() {
-            print!("{:x} ", b);
-        }
-        println!("");
-        */
+        //
+        // println!("Request: ");
+        // for b in self.0.iter() {
+        // print!("{:x} ", b);
+        // }
+        // println!("");
+        //
+
     }
 
     fn extend_with_u32(&mut self, field: u32) {
@@ -444,7 +439,7 @@ fn send(msg_bin: RequestBin) -> Result<Response, io::Error> {
 
     let remote_conn = SocketAddrV4::new(remote_ip, 56700);
     socket.set_broadcast(true)?;
-    
+
     let mb = &msg_bin.0;
 
     println!("---- Sending request: ----");
@@ -498,132 +493,100 @@ fn as_hex(arr: Vec<u8>) -> String {
 }
 
 fn bitstr_to_u32(bits: &str) -> u32 {
-    bits.as_bytes().iter().fold(0, |acc, b | {
-        (acc << 1) + if *b == 48 { 0 } else { 1 }
-    })
+    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
 pub fn get_service() -> Result<Response, io::Error> {
-    let frame = Frame::new(
-        0,     // origin:
-        true,  // tagged:
-        true,  // addressable:
-        1024,  // protocol:
-        321,   // source:
-    );
-    let frame_address = FrameAddress::new(
-        //target: [0x31, 0x19, 0x95, 0x4c, 0xb9, 0xbc, 0x00, 0x00],  
-        [0; 8], // target:
-        [0; 6], // reserved:
-        0,      // reserved_2:
-        false,  // ack_required:
-        false,  // res_required:
-        156,    // sequence:
-    );
-    let protocol_header = ProtocolHeader::new(
-        0,      // reserved:
-        2,      // message_type:
-        0,      // reserved_2:
-    );
+    let frame = Frame::new(0, true, true, 1024, 321);
+    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
+    let protocol_header = ProtocolHeader::new(0, 2, 0);
 
-    let header = Header::new( frame, frame_address, protocol_header );
+    let header = Header::new(frame, frame_address, protocol_header);
     let payload = Payload(vec![]);
     let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
-    
+
     let resp = match send(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
-        },
+        }
         Err(e) => {
             println!("bad send: {}", e);
             Err(e)
-        },
+        }
     };
     resp
 }
 
 pub fn get_device_state() -> Result<Response, io::Error> {
-    let frame = Frame::new(
-        0,      // origin:
-        false,  // tagged:
-        true,   // addressable:
-        1024,   // protocol:
-        321,    // source:
-    );
-    let frame_address = FrameAddress::new(
-        [0; 8], // target:
-        [0; 6], // reserved:
-        0,      // reserved_2:
-        false,  // ack_required:
-        false,  // res_required:
-        156,    // sequence:
-    );
-    let protocol_header = ProtocolHeader::new(
-        0,      // reserved:
-        101,    // message_type:
-        0,      // reserved_2:
-    );
+    let frame = Frame::new(0, false, true, 1024, 321);
+    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
+    let protocol_header = ProtocolHeader::new(0, 101, 0);
 
-    let header = Header::new( frame, frame_address, protocol_header );
+    let header = Header::new(frame, frame_address, protocol_header);
     let payload = Payload(vec![]);
     let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
-    
+
     let resp = match send(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
-        },
+        }
         Err(e) => {
             println!("bad send: {}", e);
             Err(e)
-        },
+        }
     };
     resp
 }
 
-pub fn set_device_state(colour: u16, interval: u32) -> Result<Response, io::Error> {
-    let frame = Frame::new(
-        0,      // origin:
-        false,  // tagged:
-        true,   // addressable:
-        1024,   // protocol:
-        321,    // source:
-    );
-    let frame_address = FrameAddress::new(
-        [0; 8], // target:
-        [0; 6], // reserved:
-        0,      // reserved_2:
-        false,  // ack_required:
-        false,  // res_required:
-        156,    // sequence:
-    );
-    let protocol_header = ProtocolHeader::new(
-        0,      // reserved:
-        102,    // message_type:
-        0,      // reserved_2:
-    );
+pub fn set_device_state(hue: u16,
+                        saturation: u16,
+                        brightness: u16,
+                        kelvin: u16,
+                        duration: u32)
+                        -> Result<Response, io::Error> {
+    let frame = Frame::new(0, false, true, 1024, 321);
+    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
+    let protocol_header = ProtocolHeader::new(0, 102, 0);
 
-    // eg. vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
-    let duration = RequestBin::u32_to_u8_array(interval);
-    let header = Header::new( frame, frame_address, protocol_header );
-    let mut payload_vec = vec![ 0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA];
-    payload_vec.append(&mut duration.to_vec());
-    let payload = Payload(payload_vec);
+    let header = Header::new(frame, frame_address, protocol_header);
+
+    // Payload example:
+    // vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
+
+    let mut reserved = vec![0x00];
+    let mut h = RequestBin::u16_to_u8_array(hue).to_vec();
+    let mut s = RequestBin::u16_to_u8_array(saturation).to_vec();
+    let mut b = RequestBin::u16_to_u8_array(brightness).to_vec();
+    let mut k = RequestBin::u16_to_u8_array(kelvin).to_vec();
+    let mut d = RequestBin::u32_to_u8_array(duration).to_vec();
+
+    let mut payload_bytes = vec![];
+
+    payload_bytes.append(&mut reserved);
+    payload_bytes.append(&mut h);
+    payload_bytes.append(&mut s);
+    payload_bytes.append(&mut b);
+    payload_bytes.append(&mut k);
+    payload_bytes.append(&mut d);
+
+    let payload = Payload(payload_bytes);
+
     let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
-    
+
     let resp = match send(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
-        },
+        }
         Err(e) => {
             println!("bad send: {}", e);
             Err(e)
-        },
+        }
     };
     resp
 }
