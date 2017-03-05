@@ -7,14 +7,14 @@ use std::str;
 
 #[derive(Debug)]
 pub struct Response {
-    pub size: String, 
-    pub source: String, 
+    pub size: String,
+    pub source: String,
     pub mac_address: String,
-    pub firmware: String,    
-    pub sequence_number: String, 
+    pub firmware: String,
+    pub sequence_number: String,
     pub reserved_1: String,
-    pub message_type: String, 
-    pub reserved_2: String, 
+    pub message_type: String,
+    pub reserved_2: String,
     pub payload: Payload,
 }
 
@@ -40,11 +40,10 @@ fn parse_header(resp: &ResponseMessage) -> Response {
         firmware: ResponseMessage::firmware(&resp),
 
         // TODO: packed byte
-
         sequence_number: ResponseMessage::sequence_number(&resp),
 
         // Message segment: protocol header
-        reserved_1: ResponseMessage::reserved_1(&resp),  // timestamp?
+        reserved_1: ResponseMessage::reserved_1(&resp), // timestamp?
         message_type: ResponseMessage::message_type(&resp),
         reserved_2: ResponseMessage::reserved_2(&resp),
         payload: Payload::None(()),
@@ -60,8 +59,8 @@ pub enum Payload {
 
 #[derive(Debug)]
 pub struct StateServicePayload {
-    service: String, 
-    port: String, 
+    service: String,
+    port: String,
     unknown: String,
 }
 
@@ -126,13 +125,13 @@ impl ResponseMessage {
         let bstr = as_boolean(b);
         bitstr_to_u32(&bstr).to_string()
     }
-    
+
     fn message_type(resp: &ResponseMessage) -> String {
         let mut b = extract(&resp, 32, 2);
         b.reverse();
         as_base10(b)
     }
-    
+
     fn reserved_2(resp: &ResponseMessage) -> String {
         let b = extract(&resp, 34, 2);
         as_base10(b)  // TODO: may not be base10, but undocumented.
@@ -152,7 +151,7 @@ impl ResponseMessage {
     fn unknown(resp: &ResponseMessage) -> String {
         let end = resp.0.len() - 39;
         let b = extract(&resp, 39, end);
-        //as_base10(b)  // TODO: may not be base10, but undocumented.
+        // as_base10(b)  // TODO: may not be base10, but undocumented.
         as_hex(b)
     }
 
@@ -192,7 +191,7 @@ impl ResponseMessage {
 
 fn extract(resp: &ResponseMessage, start: usize, len: usize) -> Vec<u8> {
     let mut sub = vec![0u8; len];
-    sub[..len].clone_from_slice(&resp.0[start..start+len]);
+    sub[..len].clone_from_slice(&resp.0[start..start + len]);
     sub
 }
 
@@ -226,22 +225,12 @@ fn as_hex(arr: Vec<u8>) -> String {
 }
 
 fn bitstr_to_u32(bits: &str) -> u32 {
-    bits.as_bytes().iter().fold(0, |acc, b | {
-        (acc << 1) + if *b == 48 { 0 } else { 1 }
-    })
+    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
 #[cfg(test)]
 mod tests {
-    use super:: {
-        ResponseMessage,
-        extract,
-        as_base10,
-        as_ascii,
-        as_boolean,
-        as_hex,
-        bitstr_to_u32,
-    };
+    use super::{ResponseMessage, extract, as_base10, as_ascii, as_boolean, as_hex, bitstr_to_u32};
 
     #[test]
     fn test_extract() {
@@ -271,8 +260,7 @@ mod tests {
 
     #[test]
     fn test_from_hex() {
-        assert_eq!(as_hex(vec![209, 114, 214, 20, 224, 14, 0, 0]), "D1:72:D6:14:E0:0E:00:00");
+        assert_eq!(as_hex(vec![209, 114, 214, 20, 224, 14, 0, 0]),
+                   "D1:72:D6:14:E0:0E:00:00");
     }
 }
-
-

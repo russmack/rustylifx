@@ -1,5 +1,7 @@
 extern crate rustylifx;
 
+use rustylifx::colour;
+
 use std::time::Duration;
 use std::thread;
 
@@ -17,7 +19,25 @@ fn main() {
     //display_response(resp2);
 
     thread::sleep(Duration::from_millis(1000));
-    rustylifx::request::set_device_state(100, 65000, 65000, 1000, 1000);
+    rustylifx::request::set_device_state(colour::RED, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::GREEN, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::BLUE, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::BEIGE, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::CHARTREUSE, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::CORAL, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::CORNFLOWER, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::DEEP_SKY_BLUE, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::SLATE_GRAY, 65000, 65000, 1000, 0);
+    thread::sleep(Duration::from_millis(1000));
+    rustylifx::request::set_device_state(colour::BEIGE, 65000, 65000, 1000, 0);
 
     println!("\nFinished.");
 }

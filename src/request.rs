@@ -4,6 +4,7 @@ use std::io;
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 use std::str;
 
+use colour;
 use response;
 use response::Response;
 
@@ -26,7 +27,7 @@ impl Request {
 struct Payload(Vec<u8>);
 
 // RequestBin newtype
-struct RequestBin(Vec<u8>);
+pub struct RequestBin(Vec<u8>);
 
 struct Header {
     frame: Frame,
@@ -399,7 +400,7 @@ impl RequestBin {
         }
     }
 
-    fn u16_to_u8_array(x: u16) -> [u8; 2] {
+    pub fn u16_to_u8_array(x: u16) -> [u8; 2] {
         let b1: u8 = ((x >> 8) & 0xff) as u8;
         let b2: u8 = (x & 0xff) as u8;
         [b1, b2]
@@ -542,14 +543,14 @@ pub fn get_device_state() -> Result<Response, io::Error> {
     resp
 }
 
-pub fn set_device_state(hue: u16,
+pub fn set_device_state(hue: u8,
                         saturation: u16,
                         brightness: u16,
                         kelvin: u16,
                         duration: u32)
                         -> Result<Response, io::Error> {
     let frame = Frame::new(0, false, true, 1024, 321);
-    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
+    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, true, false, 156);
     let protocol_header = ProtocolHeader::new(0, 102, 0);
 
     let header = Header::new(frame, frame_address, protocol_header);
@@ -558,7 +559,7 @@ pub fn set_device_state(hue: u16,
     // vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
 
     let mut reserved = vec![0x00];
-    let mut h = RequestBin::u16_to_u8_array(hue).to_vec();
+    let mut h = colour::degrees_to_word(hue).to_vec();
     let mut s = RequestBin::u16_to_u8_array(saturation).to_vec();
     let mut b = RequestBin::u16_to_u8_array(brightness).to_vec();
     let mut k = RequestBin::u16_to_u8_array(kelvin).to_vec();
