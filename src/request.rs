@@ -543,9 +543,7 @@ pub fn get_device_state() -> Result<Response, io::Error> {
     resp
 }
 
-pub fn set_device_state(hue: u8,
-                        saturation: u16,
-                        brightness: u16,
+pub fn set_device_state(hsb: colour::HSB,
                         kelvin: u16,
                         duration: u32)
                         -> Result<Response, io::Error> {
@@ -559,9 +557,9 @@ pub fn set_device_state(hue: u8,
     // vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
 
     let mut reserved = vec![0x00];
-    let mut h = colour::degrees_to_word(hue).to_vec();
-    let mut s = RequestBin::u16_to_u8_array(saturation).to_vec();
-    let mut b = RequestBin::u16_to_u8_array(brightness).to_vec();
+    let mut h = colour::hue_degrees_to_word(hsb.hue).to_vec();
+    let mut s = colour::saturation_percent_to_word(hsb.saturation).to_vec();
+    let mut b = colour::brightness_percent_to_word(hsb.brightness).to_vec();
     let mut k = RequestBin::u16_to_u8_array(kelvin).to_vec();
     let mut d = RequestBin::u32_to_u8_array(duration).to_vec();
 
