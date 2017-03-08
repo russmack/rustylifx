@@ -40,7 +40,7 @@ pub fn hue_degrees_to_word(degrees: u8) -> [u8; 2] {
 pub fn saturation_percent_to_word(percent: u8) -> [u8; 2] {
     let f = percent as f32 / 100.0 * WORDSIZE;
     let b = RequestBin::u16_to_u8_array(f as u16);
-    [b[1], b[1]]
+    [b[0], b[1]]
 }
 
 pub fn brightness_percent_to_word(percent: u8) -> [u8; 2] {
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_saturation_percent_to_word() {
-        assert_eq!([0x7F, 0x7F], saturation_percent_to_word(50));
+        assert_eq!([0x7F, 0xFF], saturation_percent_to_word(50));
     }
 
     #[test]
