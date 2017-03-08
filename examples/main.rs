@@ -6,41 +6,51 @@ use std::time::Duration;
 use std::thread;
 
 fn main() {
-    println!("Started.");
+    // Find device.
     let resp = rustylifx::request::get_service().unwrap();
     println!("\nState service:");
     display_response(resp);
     println!("==========\n");
-
     thread::sleep(Duration::from_millis(1000));
+
+    // Get device state.
     let resp2 = rustylifx::request::get_device_state().unwrap();
     println!("\nState:");
     display_response(resp2);
     println!("==========");
-
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::RED, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::GREEN, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::BLUE, 1000, 0);
     thread::sleep(Duration::from_millis(1000));
 
+    // Set colour.
 
-    let _ = rustylifx::request::set_device_state(colour::BEIGE, 1000, 0);
+    // Use constants.
+    let cols: Vec<colour::HSB> = vec![colour::RED, colour::GREEN, colour::BLUE];
+
+    for c in cols {
+        let _ = rustylifx::request::set_device_state(c, 1000, 0);
+        thread::sleep(Duration::from_millis(1000));
+    }
+
+    // Use RGB.
+    let rgb_orange = colour::rgb_to_hsv(colour::RGB{red:255, green:165, blue:0}); 
+    let _ = rustylifx::request::set_device_state(rgb_orange, 1000, 0);
     thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::CHARTREUSE, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::CORAL, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::CORNFLOWER, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::CRIMSON, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::DEEP_SKY_BLUE, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
-    let _ = rustylifx::request::set_device_state(colour::SLATE_GRAY, 1000, 0);
-    thread::sleep(Duration::from_millis(1000));
+
+    // More constants.
+    let cols: Vec<colour::HSB> = vec![
+        colour::BEIGE, 
+        colour::CHARTREUSE, 
+        colour::CORAL, 
+        colour::CORNFLOWER, 
+        colour::CRIMSON, 
+        colour::DEEP_SKY_BLUE, 
+        colour::SLATE_GRAY, 
+    ];
+
+    for c in cols {
+        let _ = rustylifx::request::set_device_state(c, 1000, 0);
+        thread::sleep(Duration::from_millis(1000));
+    }
+
     let resp = rustylifx::request::set_device_state(colour::BEIGE, 1000, 0);
     display_response(resp.unwrap());
 
