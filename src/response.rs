@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::io;
-use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 use std::str;
 
 

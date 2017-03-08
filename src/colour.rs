@@ -1,12 +1,11 @@
 use super::request::*;
 
-use std::cmp;
 use std::cmp::Ordering;
 
 
 #[derive(Debug)]
 pub struct HSB {
-    pub hue: u8,
+    pub hue: u16,
     pub saturation: u8,
     pub brightness: u8,
 }
@@ -18,7 +17,7 @@ pub struct RGB {
 }
 
 impl HSB {
-    fn new(h: u8, s: u8, b: u8) -> HSB {
+    fn new(h: u16, s: u8, b: u8) -> HSB {
         HSB {
             hue: h,
             saturation: s,
@@ -31,7 +30,7 @@ const WORDSIZE: f32 = 65535.0;
 
 // LIFX uses HSB aka HSV, not HSL.
 
-pub fn hue_degrees_to_word(degrees: u8) -> [u8; 2] {
+pub fn hue_degrees_to_word(degrees: u16) -> [u8; 2] {
     let f = degrees as f32 / 360.0 * WORDSIZE;
     let b = RequestBin::u16_to_u8_array(f as u16);
     [b[0], b[1]]
@@ -76,7 +75,7 @@ pub fn rgb_to_hsv(rgb: RGB) -> HSB {
     let v = cmax;
 
     HSB {
-        hue: h as u8,
+        hue: h as u16,
         saturation: (s * 100.0) as u8,
         brightness: (v * 100.0) as u8,
     }
@@ -99,13 +98,13 @@ mod tests {
 
     #[test]
     fn test_rgb_to_hsv() {
-        struct test {
+        struct Test {
             rgb: RGB,
             hsb: HSB,
         };
 
         let tests = vec![
-                        test {
+                        Test {
                              rgb: RGB { // olive
                                  red: 128,
                                  green: 128,
@@ -117,7 +116,7 @@ mod tests {
                                  brightness: 50,
                              },
                          },
-                         test {
+                         Test {
                              rgb: RGB { // chartreuse
                                  red: 127,
                                  green: 255,
@@ -156,7 +155,7 @@ pub const CHARTREUSE: HSB = HSB {
     brightness: 50,
 };
 pub const CORAL: HSB = HSB {
-    hue: 916,
+    hue: 16,
     saturation: 100,
     brightness: 66,
 };
