@@ -57,18 +57,18 @@ pub enum Payload {
 
 #[derive(Debug)]
 pub struct StateServicePayload {
-    service: String,
-    port: String,
-    unknown: String,
+    pub service: String,
+    pub port: String,
+    pub unknown: String,
 }
 
 #[derive(Debug)]
 pub struct StatePayload {
-    body: String,
-    hue: String,
-    saturation: String,
-    brightness: String,
-    kelvin: String,
+    pub body: String,
+    pub hue: String,
+    pub saturation: String,
+    pub brightness: String,
+    pub kelvin: String,
 }
 
 fn parse_payload_3(resp: &ResponseMessage) -> Payload {
