@@ -16,6 +16,26 @@ fn main() {
     display_response("State", &device.response);
     thread::sleep(Duration::from_millis(1000));
 
+    // Parse out HSVK details.
+    println!("\nCurrent state received:");
+    let payload = match device.response.payload {
+        response::Payload::State(ref v) => Some(v),
+        _ => None,
+    };
+
+    match payload {
+        Some(v) => {
+            println!("current payload body: {:?}", v.body);
+            println!("current hue: {:?}", v.hue);
+            println!("current sat: {:?}", v.saturation);
+            println!("current bri: {:?}", v.brightness);
+            println!("current kel: {:?}", v.kelvin);
+        },
+        None => (),
+    };
+    println!("\n");
+
+
     // Set colour.
 
     // Use constants.
