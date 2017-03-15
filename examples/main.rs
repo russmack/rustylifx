@@ -1,22 +1,38 @@
 extern crate rustylifx;
 
 use rustylifx::{colour, request, response};
+use rustylifx::request::Device;
 
 use std::time::Duration;
 use std::thread;
 
 fn main() {
-    // Find device.
+    let device = find_device();
+
+    let device = get_device_state(device);
+
+    parse_hsvk(&device);
+
+    change_colour(device);
+
+    println!("\nFinished.");
+}
+
+fn find_device() -> Device {
     let device = request::get_service().unwrap();
     display_response("State service", &device.response);
     thread::sleep(Duration::from_millis(1000));
+    device
+}
 
-    // Get device state.
+fn get_device_state(device: Device) -> Device {
     let device = request::get_device_state(device).unwrap();
     display_response("State", &device.response);
     thread::sleep(Duration::from_millis(1000));
+    device
+}
 
-    // Parse out HSVK details.
+fn parse_hsvk(device: &Device) {
     println!("\nCurrent state received:");
     let payload = match device.response.payload {
         response::Payload::State(ref v) => Some(v),
@@ -34,10 +50,9 @@ fn main() {
         None => (),
     };
     println!("\n");
+}
 
-
-    // Set colour.
-
+fn change_colour(device: Device) {
     // Use constants.
     let cols: Vec<colour::HSB> = vec![colour::RED, colour::GREEN, colour::BLUE];
 
@@ -74,7 +89,6 @@ fn main() {
     let device = request::set_device_state(&device, colour::BEIGE, 1000, 0);
     display_response("Set state", &device.unwrap().response);
 
-    println!("\nFinished.");
 }
 
 fn display_response(title: &str, resp: &response::Response) {
