@@ -579,7 +579,7 @@ pub fn get_device_state(device: Device) -> Result<Device, io::Error> {
 }
 
 pub fn set_device_state(device: &Device,
-                        hsb: colour::HSB,
+                        hsb: &colour::HSB,
                         kelvin: u16,
                         duration: u32)
                         -> Result<Device, io::Error> {
