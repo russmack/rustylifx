@@ -16,6 +16,15 @@ pub struct RGB {
     pub blue: u8,
 }
 
+#[derive(Debug)]
+pub struct HSBK {
+    pub hue: u16,
+    pub saturation: u8,
+    pub brightness: u8,
+    pub kelvin: u16,
+}
+
+
 impl HSB {
     fn new(h: u16, s: u8, b: u8) -> HSB {
         HSB {

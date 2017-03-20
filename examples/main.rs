@@ -42,10 +42,10 @@ fn parse_hsvk(device: &Device) {
     match payload {
         Some(v) => {
             println!("current payload body: {:?}", v.body);
-            println!("current hue: {:?}", v.hue);
-            println!("current sat: {:?}", v.saturation);
-            println!("current bri: {:?}", v.brightness);
-            println!("current kel: {:?}", v.kelvin);
+            println!("current hue: {:?}", v.hsbk.hue);
+            println!("current sat: {:?}", v.hsbk.saturation);
+            println!("current bri: {:?}", v.hsbk.brightness);
+            println!("current kel: {:?}", v.hsbk.kelvin);
         },
         None => (),
     };
