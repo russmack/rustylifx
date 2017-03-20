@@ -2,7 +2,6 @@
 
 use std::str;
 
-
 #[derive(Debug)]
 pub struct Response {
     pub size: String,
@@ -65,6 +64,11 @@ pub struct StateServicePayload {
 #[derive(Debug)]
 pub struct StatePayload {
     pub body: String,
+    pub hsbk: PayloadHSBK,
+}
+
+#[derive(Debug)]
+pub struct PayloadHSBK {
     pub hue: String,
     pub saturation: String,
     pub brightness: String,
@@ -82,10 +86,12 @@ fn parse_payload_3(resp: &ResponseMessage) -> Payload {
 fn parse_payload_107(resp: &ResponseMessage) -> Payload {
     Payload::State(StatePayload {
         body: ResponseMessage::body(&resp),
-        hue: ResponseMessage::hue(&resp),
-        saturation: ResponseMessage::saturation(&resp),
-        brightness: ResponseMessage::brightness(&resp),
-        kelvin: ResponseMessage::kelvin(&resp),
+        hsbk: PayloadHSBK {
+            hue: ResponseMessage::hue(&resp),
+            saturation: ResponseMessage::saturation(&resp),
+            brightness: ResponseMessage::brightness(&resp),
+            kelvin: ResponseMessage::kelvin(&resp),
+        },
     })
 }
 
