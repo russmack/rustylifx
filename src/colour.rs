@@ -45,6 +45,12 @@ pub fn hue_degrees_to_word(degrees: u16) -> [u8; 2] {
     [b[0], b[1]]
 }
 
+pub fn hue_word_to_degrees(word: u16) -> u16 {
+    let f: f32 = word as f32 / WORDSIZE;
+    let d: u16 = (f * 360.0) as u16;
+    d
+}
+
 pub fn saturation_percent_to_word(percent: u8) -> [u8; 2] {
     let f = percent as f32 / 100.0 * WORDSIZE;
     let b = RequestBin::u16_to_u8_array(f as u16);
@@ -98,6 +104,13 @@ mod tests {
     #[test]
     fn test_hue_degrees_to_word() {
         assert_eq!([0x55, 0x55], hue_degrees_to_word(120));
+    }
+
+    #[test]
+    fn test_hue_word_to_degrees() {
+        assert_eq!(360, hue_word_to_degrees(65535));
+        assert_eq!(0, hue_word_to_degrees(0));
+        assert_eq!(180, hue_word_to_degrees(32768));
     }
 
     #[test]
