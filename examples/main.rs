@@ -43,9 +43,11 @@ fn parse_hsvk(device: &Device) {
         Some(v) => {
             println!("current payload body: {:?}", v.body);
             println!("current hue: {:?}", v.hsbk.hue);
-            println!("current hue degrees: {:?}", colour::hue_word_to_degrees(v.hsbk.hue.parse::<u16>().unwrap()));
+            println!("current hue degrees: {:?}º", colour::hue_word_to_degrees(v.hsbk.hue.parse::<u16>().unwrap()));
             println!("current sat: {:?}", v.hsbk.saturation);
+            println!("current sat percent: {:?}%", colour::saturation_word_to_percent(v.hsbk.saturation.parse::<u16>().unwrap()));
             println!("current bri: {:?}", v.hsbk.brightness);
+            println!("current bri percent: {:?}%", colour::brightness_word_to_percent(v.hsbk.brightness.parse::<u16>().unwrap()));
             println!("current kel: {:?}", v.hsbk.kelvin);
         },
         None => (),
