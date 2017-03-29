@@ -1,7 +1,7 @@
 extern crate rustylifx;
 
 use rustylifx::{colour, request, response};
-use rustylifx::request::Device;
+use rustylifx::network::Device;
 
 use std::time::Duration;
 use std::thread;

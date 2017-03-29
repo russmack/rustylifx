@@ -1,12 +1,10 @@
 #![allow(dead_code)]
 
 use std::io;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use std::str;
 
 use colour;
-use response;
-use response::Response;
+use network;
 
 type Bit = bool;
 
@@ -27,7 +25,7 @@ impl Request {
 struct Payload(Vec<u8>);
 
 // RequestBin newtype
-pub struct RequestBin(Vec<u8>);
+pub struct RequestBin(pub Vec<u8>);
 
 struct Header {
     frame: Frame,
@@ -460,79 +458,8 @@ fn bitstr_to_u32(bits: &str) -> u32 {
     bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
-pub struct Network {}
 
-pub struct Device {
-    socket_addr: SocketAddr,
-    pub response: Response,
-}
-
-impl Network {
-    fn send_discover_devices(msg_bin: RequestBin) -> Result<Device, io::Error> {
-        let use_broadcast = true;
-        let broadcast_ip = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 0));
-        let broadcast_port = 56700;
-        let broadcast_sock_addr = SocketAddr::new(broadcast_ip, broadcast_port);
-
-        send(msg_bin, use_broadcast, broadcast_sock_addr)
-    }
-}
-
-impl Device {
-    fn send_get_device_state(&self, msg_bin: RequestBin) -> Result<Device, io::Error> {
-        let use_broadcast = false;
-
-        send(msg_bin, use_broadcast, self.socket_addr)
-    }
-
-    fn send_set_device_state(&self, msg_bin: RequestBin) -> Result<Device, io::Error> {
-        let use_broadcast = false;
-
-        send(msg_bin, use_broadcast, self.socket_addr)
-    }
-}
-
-fn send(msg_bin: RequestBin,
-        broadcast: bool,
-        device_socket_addr: SocketAddr)
-        -> Result<Device, io::Error> {
-    let local_ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-    let local_sock_addr = SocketAddr::new(local_ip, 56700);
-    let local_sock = try!(UdpSocket::bind(local_sock_addr));
-    local_sock.set_broadcast(broadcast)?;
-
-    let msg = &msg_bin.0;
-    display(msg);
-    try!(local_sock.send_to(&msg, device_socket_addr));
-
-    // Read from the socket
-    let mut resp_buf = [0; 1024];
-    let (sz, src_sock_addr) = try!(local_sock.recv_from(&mut resp_buf));
-
-    let resp_msg = &resp_buf[0..sz];
-    println!("Received from {} : \n{:?}", src_sock_addr, resp_msg);
-
-    let resp = response::parse_response(response::ResponseMessage(resp_msg.to_vec()));
-
-    let device = Device {
-        socket_addr: src_sock_addr,
-        response: resp,
-    };
-
-    Ok(device)
-}
-
-fn display(msg_bin: &Vec<u8>) {
-    println!("---- Sending request: ----");
-    println!("Dec: {:?}", msg_bin);
-    print!("Bytes: ");
-    for b in msg_bin.iter() {
-        print!("{:x} ", b);
-    }
-    println!("\n----");
-}
-
-pub fn get_service() -> Result<Device, io::Error> {
+pub fn get_service() -> Result<network::Device, io::Error> {
     let frame = Frame::new(0, true, true, 1024, 321);
     let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
     let protocol_header = ProtocolHeader::new(0, 2, 0);
@@ -542,7 +469,7 @@ pub fn get_service() -> Result<Device, io::Error> {
     let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
 
-    let resp = match Network::send_discover_devices(msg_bin) {
+    let resp = match network::Network::send_discover_devices(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
@@ -555,7 +482,7 @@ pub fn get_service() -> Result<Device, io::Error> {
     resp
 }
 
-pub fn get_device_state(device: Device) -> Result<Device, io::Error> {
+pub fn get_device_state(device: network::Device) -> Result<network::Device, io::Error> {
     let frame = Frame::new(0, false, true, 1024, 321);
     let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
     let protocol_header = ProtocolHeader::new(0, 101, 0);
@@ -578,11 +505,11 @@ pub fn get_device_state(device: Device) -> Result<Device, io::Error> {
     resp
 }
 
-pub fn set_device_state(device: &Device,
+pub fn set_device_state(device: &network::Device,
                         hsb: &colour::HSB,
                         kelvin: u16,
                         duration: u32)
-                        -> Result<Device, io::Error> {
+                        -> Result<network::Device, io::Error> {
     let frame = Frame::new(0, false, true, 1024, 321);
     let frame_address = FrameAddress::new([0; 8], [0; 6], 0, true, false, 156);
     let protocol_header = ProtocolHeader::new(0, 102, 0);

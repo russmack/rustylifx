@@ -26,7 +26,7 @@ pub struct HSBK {
 
 
 impl HSB {
-    fn new(h: u16, s: u8, b: u8) -> HSB {
+    pub fn new(h: u16, s: u8, b: u8) -> HSB {
         HSB {
             hue: h,
             saturation: s,
