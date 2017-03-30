@@ -458,15 +458,17 @@ fn bitstr_to_u32(bits: &str) -> u32 {
     bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
-
 pub fn get_service() -> Result<network::Device, io::Error> {
-    let frame = Frame::new(0, true, true, 1024, 321);
-    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
-    let protocol_header = ProtocolHeader::new(0, 2, 0);
+    let msg = 
+        Request::new(
+            Header::new(
+                Frame::new(0, true, true, 1024, 321),
+                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
+                ProtocolHeader::new(0, 2, 0),
+            ),
+            Payload(vec![]),
+        );
 
-    let header = Header::new(frame, frame_address, protocol_header);
-    let payload = Payload(vec![]);
-    let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
 
     let resp = match network::Network::send_discover_devices(msg_bin) {
@@ -483,13 +485,16 @@ pub fn get_service() -> Result<network::Device, io::Error> {
 }
 
 pub fn get_device_state(device: network::Device) -> Result<network::Device, io::Error> {
-    let frame = Frame::new(0, false, true, 1024, 321);
-    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, false, false, 156);
-    let protocol_header = ProtocolHeader::new(0, 101, 0);
+    let msg = 
+        Request::new(
+            Header::new(
+                Frame::new(0, false, true, 1024, 321),
+                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
+                ProtocolHeader::new(0, 101, 0),
+            ),
+            Payload(vec![])
+        );
 
-    let header = Header::new(frame, frame_address, protocol_header);
-    let payload = Payload(vec![]);
-    let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
 
     let resp = match device.send_get_device_state(msg_bin) {
@@ -510,34 +515,35 @@ pub fn set_device_state(device: &network::Device,
                         kelvin: u16,
                         duration: u32)
                         -> Result<network::Device, io::Error> {
-    let frame = Frame::new(0, false, true, 1024, 321);
-    let frame_address = FrameAddress::new([0; 8], [0; 6], 0, true, false, 156);
-    let protocol_header = ProtocolHeader::new(0, 102, 0);
-
-    let header = Header::new(frame, frame_address, protocol_header);
-
     // Payload example:
     // vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
 
-    let mut reserved = vec![0x00];
-    let mut h = colour::hue_degrees_to_word(hsb.hue).to_vec();
-    let mut s = colour::saturation_percent_to_word(hsb.saturation).to_vec();
-    let mut b = colour::brightness_percent_to_word(hsb.brightness).to_vec();
-    let mut k = RequestBin::u16_to_u8_array(kelvin).to_vec();
-    let mut d = RequestBin::u32_to_u8_array(duration).to_vec();
+    let reserved = vec![0x00];
+    let h = colour::hue_degrees_to_word(hsb.hue).to_vec();
+    let s = colour::saturation_percent_to_word(hsb.saturation).to_vec();
+    let b = colour::brightness_percent_to_word(hsb.brightness).to_vec();
+    let k = RequestBin::u16_to_u8_array(kelvin).to_vec();
+    let d = RequestBin::u32_to_u8_array(duration).to_vec();
 
-    let mut payload_bytes = vec![];
+    let payload_bytes = vec![
+        &reserved[..],
+        &h[..],
+        &s[..],
+        &b[..],
+        &k[..],
+        &d[..],
+    ].concat();
 
-    payload_bytes.append(&mut reserved);
-    payload_bytes.append(&mut h);
-    payload_bytes.append(&mut s);
-    payload_bytes.append(&mut b);
-    payload_bytes.append(&mut k);
-    payload_bytes.append(&mut d);
+    let msg = 
+        Request::new(
+            Header::new(
+                Frame::new(0, false, true, 1024, 321),
+                FrameAddress::new([0; 8], [0; 6], 0, true, false, 156),
+                ProtocolHeader::new(0, 102, 0),
+            ),
+            Payload(payload_bytes),
+        );
 
-    let payload = Payload(payload_bytes);
-
-    let msg = Request::new(header, payload);
     let msg_bin = RequestBin::from(msg);
 
     let resp = match device.send_set_device_state(msg_bin) {
