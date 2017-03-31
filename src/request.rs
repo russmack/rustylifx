@@ -1,14 +1,10 @@
 #![allow(dead_code)]
 
-use std::io;
 use std::str;
-
-use colour;
-use network;
 
 type Bit = bool;
 
-struct Request {
+pub struct Request {
     header: Header,
     payload: Payload,
 }
@@ -22,12 +18,12 @@ impl Request {
     }
 }
 
-struct Payload(Vec<u8>);
+pub struct Payload(pub Vec<u8>);
 
 // RequestBin newtype
 pub struct RequestBin(pub Vec<u8>);
 
-struct Header {
+pub struct Header {
     frame: Frame,
     frame_address: FrameAddress,
     protocol_header: ProtocolHeader,
@@ -46,7 +42,7 @@ impl Header {
     }
 }
 
-struct Frame {
+pub struct Frame {
     // First 2 bytes
     size: u16,
 
@@ -75,7 +71,7 @@ impl Frame {
     }
 }
 
-struct FrameAddress {
+pub struct FrameAddress {
     // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
     target: [u8; 8],
     reserved: [u8; 6],
@@ -104,7 +100,7 @@ impl FrameAddress {
     }
 }
 
-struct ProtocolHeader {
+pub struct ProtocolHeader {
     reserved: u64,
     message_type: u16,
     reserved_2: u16,
@@ -315,13 +311,11 @@ impl RequestBin {
     fn extend_with_bool(&mut self, field: bool) {
         // No need to reverse endianness, single byte.
         self.0.extend_from_slice(&RequestBin::bool_to_u8_array(field));
-        self.pp();
     }
 
     fn extend_with_u8(&mut self, field: u8) {
         // No need to reverse endianness, single byte.
         self.0.extend_from_slice(&[field]);
-        self.pp();
     }
 
     fn extend_with_u8_array_8(&mut self, mut field: [u8; 8]) {
@@ -329,7 +323,6 @@ impl RequestBin {
         for b in field.iter() {
             self.0.extend_from_slice(&[*b]);
         }
-        self.pp();
     }
 
     fn extend_with_u8_array_6(&mut self, mut field: [u8; 6]) {
@@ -337,7 +330,6 @@ impl RequestBin {
         for b in field.iter() {
             self.0.extend_from_slice(&[*b]);
         }
-        self.pp();
     }
 
     fn extend_with_u8_array_4(&mut self, mut field: [u8; 4]) {
@@ -345,7 +337,6 @@ impl RequestBin {
         for b in field.iter() {
             self.0.extend_from_slice(&[*b]);
         }
-        self.pp();
     }
 
     fn extend_with_u8_array_2(&mut self, mut field: [u8; 2]) {
@@ -353,42 +344,24 @@ impl RequestBin {
         for b in field.iter() {
             self.0.extend_from_slice(&[*b]);
         }
-        self.pp();
     }
 
     fn extend_with_u16(&mut self, field: u16) {
         let mut p = RequestBin::u16_to_u8_array(field);
         p.reverse();
-        self.pp();
         self.0.extend_from_slice(&p);
-        self.pp();
-    }
-
-    fn pp(&self) {
-        return;
-        // TODO: implement debug switch
-        //
-        // println!("Request: ");
-        // for b in self.0.iter() {
-        // print!("{:x} ", b);
-        // }
-        // println!("");
-        //
-
     }
 
     fn extend_with_u32(&mut self, field: u32) {
         let mut p = RequestBin::u32_to_u8_array(field);
         p.reverse();
         self.0.extend_from_slice(&p);
-        self.pp();
     }
 
     fn extend_with_u64(&mut self, field: u64) {
         let mut p = RequestBin::u64_to_u8_array(field);
         p.reverse();
         self.0.extend_from_slice(&p);
-        self.pp();
     }
 
     fn bool_to_u8_array(b: bool) -> [u8; 1] {
@@ -404,7 +377,7 @@ impl RequestBin {
         [b1, b2]
     }
 
-    fn u32_to_u8_array(x: u32) -> [u8; 4] {
+    pub fn u32_to_u8_array(x: u32) -> [u8; 4] {
         let b1: u8 = ((x >> 24) & 0xff) as u8;
         let b2: u8 = ((x >> 16) & 0xff) as u8;
         let b3: u8 = ((x >> 8) & 0xff) as u8;
@@ -425,136 +398,3 @@ impl RequestBin {
     }
 }
 
-fn as_base10(v: Vec<u8>) -> String {
-    let mut s = "".to_string();
-    for b in v {
-        s.push_str(format!("{}", b).as_str());
-    }
-    let n = s.parse::<u16>().unwrap();
-    n.to_string()
-}
-
-fn as_ascii(arr: Vec<u8>) -> String {
-    str::from_utf8(&arr).unwrap().to_string()
-}
-
-fn as_boolean(v: Vec<u8>) -> String {
-    let mut s = "".to_string();
-    for b in v {
-        s.push_str(format!("{:08b}", b).as_str());
-    }
-    s
-}
-
-fn as_hex(arr: Vec<u8>) -> String {
-    let mut s: Vec<String> = vec![];
-    for b in arr {
-        s.push(format!("{:02X}", b));
-    }
-    s.join(":")
-}
-
-fn bitstr_to_u32(bits: &str) -> u32 {
-    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
-}
-
-pub fn get_service() -> Result<network::Device, io::Error> {
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, true, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
-                ProtocolHeader::new(0, 2, 0),
-            ),
-            Payload(vec![]),
-        );
-
-    let msg_bin = RequestBin::from(msg);
-
-    let resp = match network::Network::send_discover_devices(msg_bin) {
-        Ok(r) => {
-            println!("good send");
-            Ok(r)
-        }
-        Err(e) => {
-            println!("bad send: {}", e);
-            Err(e)
-        }
-    };
-    resp
-}
-
-pub fn get_device_state(device: network::Device) -> Result<network::Device, io::Error> {
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, false, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
-                ProtocolHeader::new(0, 101, 0),
-            ),
-            Payload(vec![])
-        );
-
-    let msg_bin = RequestBin::from(msg);
-
-    let resp = match device.send_get_device_state(msg_bin) {
-        Ok(r) => {
-            println!("good send");
-            Ok(r)
-        }
-        Err(e) => {
-            println!("bad send: {}", e);
-            Err(e)
-        }
-    };
-    resp
-}
-
-pub fn set_device_state(device: &network::Device,
-                        hsb: &colour::HSB,
-                        kelvin: u16,
-                        duration: u32)
-                        -> Result<network::Device, io::Error> {
-    // Payload example:
-    // vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8]
-
-    let reserved = vec![0x00];
-    let h = colour::hue_degrees_to_word(hsb.hue).to_vec();
-    let s = colour::saturation_percent_to_word(hsb.saturation).to_vec();
-    let b = colour::brightness_percent_to_word(hsb.brightness).to_vec();
-    let k = RequestBin::u16_to_u8_array(kelvin).to_vec();
-    let d = RequestBin::u32_to_u8_array(duration).to_vec();
-
-    let payload_bytes = vec![
-        &reserved[..],
-        &h[..],
-        &s[..],
-        &b[..],
-        &k[..],
-        &d[..],
-    ].concat();
-
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, false, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, true, false, 156),
-                ProtocolHeader::new(0, 102, 0),
-            ),
-            Payload(payload_bytes),
-        );
-
-    let msg_bin = RequestBin::from(msg);
-
-    let resp = match device.send_set_device_state(msg_bin) {
-        Ok(r) => {
-            println!("good send");
-            Ok(r)
-        }
-        Err(e) => {
-            println!("bad send: {}", e);
-            Err(e)
-        }
-    };
-    resp
-}
