@@ -1,6 +1,6 @@
 extern crate rustylifx;
 
-use rustylifx::{colour, request, response};
+use rustylifx::{colour, messages, response};
 use rustylifx::network::Device;
 
 use std::time::Duration;
@@ -19,14 +19,14 @@ fn main() {
 }
 
 fn find_device() -> Device {
-    let device = request::get_service().unwrap();
+    let device = messages::get_service().unwrap();
     display_response("State service", &device.response);
     thread::sleep(Duration::from_millis(1000));
     device
 }
 
 fn get_device_state(device: Device) -> Device {
-    let device = request::get_device_state(device).unwrap();
+    let device = messages::get_device_state(device).unwrap();
     display_response("State", &device.response);
     thread::sleep(Duration::from_millis(1000));
     device
@@ -60,7 +60,7 @@ fn change_colour(device: Device) {
     let cols: Vec<colour::HSB> = vec![colour::RED, colour::GREEN, colour::BLUE];
 
     for c in cols {
-        let _ = request::set_device_state(&device, &c, 1000, 0);
+        let _ = messages::set_device_state(&device, &c, 1000, 0);
         thread::sleep(Duration::from_millis(1000));
     }
 
@@ -70,7 +70,7 @@ fn change_colour(device: Device) {
         green: 165,
         blue: 0,
     });
-    let _ = request::set_device_state(&device, &rgb_orange, 1000, 0);
+    let _ = messages::set_device_state(&device, &rgb_orange, 1000, 0);
     thread::sleep(Duration::from_millis(1000));
 
     // More constants.
@@ -85,11 +85,11 @@ fn change_colour(device: Device) {
     ];
 
     for c in cols {
-        let _ = request::set_device_state(&device, &c, 1000, 0);
+        let _ = messages::set_device_state(&device, &c, 1000, 0);
         thread::sleep(Duration::from_millis(1000));
     }
 
-    let device = request::set_device_state(&device, &colour::BEIGE, 1000, 0);
+    let device = messages::set_device_state(&device, &colour::BEIGE, 1000, 0);
     display_response("Set state", &device.unwrap().response);
 
 }
