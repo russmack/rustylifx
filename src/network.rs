@@ -57,7 +57,8 @@ fn send(msg_bin: RequestBin,
     let resp_msg = &resp_buf[0..sz];
     println!("Received from {} : \n{:?}", src_sock_addr, resp_msg);
 
-    let resp = response::parse_response(response::ResponseMessage(resp_msg.to_vec()));
+    let resp = response::parse_response(response::ResponseData(resp_msg.to_vec()));
+    //let resp = response::parse_response(response::ResponseMessage(resp_msg.to_vec()));
 
     let device = Device {
         socket_addr: src_sock_addr,

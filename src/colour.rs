@@ -3,6 +3,9 @@ use super::request::*;
 use std::cmp::Ordering;
 
 
+/// HSB colour representation - hue, saturation, brightness (aka value).
+/// Aka HSV (LIFX terminology) - hue, saturation, value.
+/// This is not the same as HSL as used in CSS.
 #[derive(Debug)]
 pub struct HSB {
     pub hue: u16,
@@ -10,12 +13,15 @@ pub struct HSB {
     pub brightness: u8,
 }
 
+///  RGB colour representation - red, green, blue.
 pub struct RGB {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
 }
 
+/// HSBK colour representation - hue, saturation, brightness, kelvin.
+/// Kelvin seems to be relevant only to whites - temperature of white.
 #[derive(Debug)]
 pub struct HSBK {
     pub hue: u16,
@@ -23,7 +29,6 @@ pub struct HSBK {
     pub brightness: u8,
     pub kelvin: u16,
 }
-
 
 impl HSB {
     pub fn new(h: u16, s: u8, b: u8) -> HSB {
@@ -35,6 +40,17 @@ impl HSB {
     }
 }
 
+impl From<HSBK> for HSB {
+    fn from(c: HSBK) -> HSB {
+        HSB::new(
+            c.hue, 
+            c.saturation, 
+            c.brightness,
+        )
+    }
+}
+
+/// The max value of bytes used to represent the colour element as bytes.
 const WORDSIZE: f32 = 65535.0;
 
 // LIFX uses HSB aka HSV, not HSL.
