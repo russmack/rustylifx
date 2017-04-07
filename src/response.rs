@@ -442,17 +442,17 @@ fn bitstr_to_u32(bits: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{ResponseMessage, extract, as_base10, as_ascii, as_boolean, as_hex, bitstr_to_u32};
+    use super::{ResponseData, ResponseMessage, extract, as_base10, as_ascii, as_boolean, as_hex, bitstr_to_u32};
 
     #[test]
     fn test_extract() {
-        let resp = ResponseMessage(vec![41, 42, 43, 44, 45, 46, 47, 48, 49]);
+        let resp = ResponseData(vec![41, 42, 43, 44, 45, 46, 47, 48, 49]);
         assert_eq!(extract(&resp, 2, 3), vec![43, 44, 45]);
     }
 
     #[test]
     fn test_as_base10() {
-        assert_eq!(as_base10(vec![00, 41]), "41");
+        assert_eq!(as_base10(vec![00, 41]), 41);
     }
 
     #[test]
