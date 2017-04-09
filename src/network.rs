@@ -1,12 +1,13 @@
 use std::io;
 use std::net::{IpAddr, SocketAddr, UdpSocket, Ipv4Addr};
 
-use request::{RequestBin};
+use request::RequestBin;
 use response;
-use response::{Response};
+use response::Response;
 
 pub struct Network {}
 
+/// Represents a device on the network, as well as a response.
 pub struct Device {
     socket_addr: SocketAddr,
     pub response: Response,
@@ -58,7 +59,7 @@ fn send(msg_bin: RequestBin,
     println!("Received from {} : \n{:?}", src_sock_addr, resp_msg);
 
     let resp = response::parse_response(response::ResponseData(resp_msg.to_vec()));
-    //let resp = response::parse_response(response::ResponseMessage(resp_msg.to_vec()));
+    // let resp = response::parse_response(response::ResponseMessage(resp_msg.to_vec()));
 
     let device = Device {
         socket_addr: src_sock_addr,
