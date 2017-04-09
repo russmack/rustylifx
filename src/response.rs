@@ -14,6 +14,7 @@ pub struct Response {
     pub reserved_2: u16,
     pub payload: Payload,
 }
+
 #[derive(Debug)]
 pub struct ResponseString {
     pub size: String,
@@ -105,8 +106,8 @@ pub enum PayloadString {
 
 #[derive(Debug)]
 pub struct StateServicePayload {
-    pub service: u16, //String,
-    pub port: u32, //String,
+    pub service: u16, // String,
+    pub port: u32, // String,
     pub unknown: String,
 }
 #[derive(Debug)]
@@ -258,7 +259,7 @@ impl ResponseData {
         b.reverse();
         let bstr = as_boolean(b);
         bitstr_to_u16(&bstr)
-        //bitstr_to_u32(&bstr)
+        // bitstr_to_u32(&bstr)
     }
 
     fn saturation(resp: &ResponseData) -> u8 {
@@ -442,7 +443,8 @@ fn bitstr_to_u32(bits: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{ResponseData, ResponseMessage, extract, as_base10, as_ascii, as_boolean, as_hex, bitstr_to_u32};
+    use super::{ResponseData, ResponseMessage, extract, as_base10, as_ascii, as_boolean, as_hex,
+                bitstr_to_u32};
 
     #[test]
     fn test_extract() {
