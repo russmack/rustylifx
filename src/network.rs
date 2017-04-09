@@ -9,8 +9,8 @@ pub struct Network {}
 
 /// Represents a device on the network, as well as a response.
 pub struct Device {
-    socket_addr: SocketAddr,
-    pub response: Response,
+    pub socket_addr: SocketAddr,
+    pub response: Option<Response>,
 }
 
 impl Network {
@@ -63,7 +63,7 @@ fn send(msg_bin: RequestBin,
 
     let device = Device {
         socket_addr: src_sock_addr,
-        response: resp,
+        response: Some(resp),
     };
 
     Ok(device)

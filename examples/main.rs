@@ -20,21 +20,35 @@ fn main() {
 
 fn find_device() -> Device {
     let device = messages::get_service().unwrap();
-    display_response("State service", &device.response);
+
+    match device.response {
+        Some(ref resp) => display_response("State service", &resp),
+        None => panic!("no response"),
+    };
+
     thread::sleep(Duration::from_millis(1000));
     device
 }
 
 fn get_device_state(device: Device) -> Device {
     let device = messages::get_device_state(device).unwrap();
-    display_response("State", &device.response);
+    match device.response {
+        Some(ref resp) => display_response("State", resp),
+        None => panic!("no response"),
+    };
+
     thread::sleep(Duration::from_millis(1000));
     device
 }
 
 fn parse_hsvk(device: &Device) {
     println!("\nCurrent state received:");
-    let payload = match device.response.payload {
+    let resp = match device.response {
+        Some(ref v) => v,
+        None => panic!("no response"),
+    };
+
+    let payload = match resp.payload {
         response::Payload::State(ref v) => Some(v),
         _ => None,
     };
@@ -43,15 +57,16 @@ fn parse_hsvk(device: &Device) {
         Some(v) => {
             println!("current payload body: {:?}", v.body);
             println!("current hue: {:?}", v.hsbk.hue);
-            println!("current hue degrees: {:?}º", colour::hue_word_to_degrees(v.hsbk.hue));
-            //println!("current hue degrees: {:?}º", colour::hue_word_to_degrees(v.hsbk.hue.parse::<u16>().unwrap()));
+            println!("current hue degrees: {:?}º",
+                     colour::hue_word_to_degrees(v.hsbk.hue));
             println!("current sat: {:?}", v.hsbk.saturation);
-            println!("current sat percent: {:?}%", colour::saturation_word_to_percent(v.hsbk.saturation as u16));
-            //println!("current sat percent: {:?}%", colour::saturation_word_to_percent(v.hsbk.saturation.parse::<u16>().unwrap()));
+            println!("current sat percent: {:?}%",
+                     colour::saturation_word_to_percent(v.hsbk.saturation as u16));
             println!("current bri: {:?}", v.hsbk.brightness);
-            println!("current bri percent: {:?}%", colour::brightness_word_to_percent(v.hsbk.brightness as u16));
+            println!("current bri percent: {:?}%",
+                     colour::brightness_word_to_percent(v.hsbk.brightness as u16));
             println!("current kel: {:?}", v.hsbk.kelvin);
-        },
+        }
         None => (),
     };
     println!("\n");
@@ -92,7 +107,7 @@ fn change_colour(device: Device) {
     }
 
     let device = messages::set_device_state(&device, &colour::BEIGE, 1000, 0);
-    display_response("Set state", &device.unwrap().response);
+    display_response("Set state", &device.unwrap().response.unwrap());
 
 }
 
