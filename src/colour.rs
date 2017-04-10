@@ -42,11 +42,7 @@ impl HSB {
 
 impl From<HSBK> for HSB {
     fn from(c: HSBK) -> HSB {
-        HSB::new(
-            c.hue, 
-            c.saturation, 
-            c.brightness,
-        )
+        HSB::new(c.hue, c.saturation, c.brightness)
     }
 }
 
@@ -189,53 +185,80 @@ mod tests {
     }
 }
 
-pub const BEIGE: HSB = HSB {
-    hue: 60,
-    saturation: 56,
-    brightness: 91,
-};
-pub const BLUE: HSB = HSB {
-    hue: 240,
-    saturation: 100,
-    brightness: 50,
-};
-pub const CHARTREUSE: HSB = HSB {
-    hue: 90,
-    saturation: 100,
-    brightness: 50,
-};
-pub const CORAL: HSB = HSB {
-    hue: 16,
-    saturation: 100,
-    brightness: 66,
-};
-pub const CORNFLOWER: HSB = HSB {
-    hue: 219,
-    saturation: 79,
-    brightness: 66,
-};
-pub const CRIMSON: HSB = HSB {
-    hue: 348,
-    saturation: 83,
-    brightness: 47,
-};
-pub const DEEP_SKY_BLUE: HSB = HSB {
-    hue: 195,
-    saturation: 100,
-    brightness: 50,
-};
-pub const GREEN: HSB = HSB {
-    hue: 120,
-    saturation: 100,
-    brightness: 50,
-};
-pub const RED: HSB = HSB {
-    hue: 0,
-    saturation: 100,
-    brightness: 50,
-};
-pub const SLATE_GRAY: HSB = HSB {
-    hue: 210,
-    saturation: 13,
-    brightness: 50,
-};
+pub fn get_colour(s: &str) -> HSB {
+    let colour: &str = &(s.to_lowercase());
+    match colour {
+        "beige" => {
+            HSB {
+                hue: 60,
+                saturation: 56,
+                brightness: 91,
+            }
+        }
+        "blue" => {
+            HSB {
+                hue: 240,
+                saturation: 100,
+                brightness: 50,
+            }
+        }
+        "chartreuse" => {
+            HSB {
+                hue: 90,
+                saturation: 100,
+                brightness: 50,
+            }
+        }
+        "coral" => {
+            HSB {
+                hue: 16,
+                saturation: 100,
+                brightness: 66,
+            }
+        }
+        "cornflower" => {
+            HSB {
+                hue: 219,
+                saturation: 79,
+                brightness: 66,
+            }
+        }
+        "crimson" => {
+            HSB {
+                hue: 348,
+                saturation: 83,
+                brightness: 47,
+            }
+        }
+        "deep_sky_blue" => {
+            HSB {
+                hue: 195,
+                saturation: 100,
+                brightness: 50,
+            }
+        }
+        "green" => {
+            HSB {
+                hue: 120,
+                saturation: 100,
+                brightness: 50,
+            }
+        }
+        "red" => {
+            HSB {
+                hue: 0,
+                saturation: 100,
+                brightness: 50,
+            }
+        }
+        "slate_gray" => {
+            HSB {
+                hue: 210,
+                saturation: 13,
+                brightness: 50,
+            }
+        }
+        _ => panic!("no such colour."),
+    }
+
+}

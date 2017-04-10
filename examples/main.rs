@@ -74,7 +74,8 @@ fn parse_hsvk(device: &Device) {
 
 fn change_colour(device: Device) {
     // Use constants.
-    let cols: Vec<colour::HSB> = vec![colour::RED, colour::GREEN, colour::BLUE];
+    let cols: Vec<colour::HSB> =
+        vec![colour::get_colour("red"), colour::get_colour("green"), colour::get_colour("blue")];
 
     for c in cols {
         let _ = messages::set_device_state(&device, &c, 1000, 0);
@@ -92,13 +93,13 @@ fn change_colour(device: Device) {
 
     // More constants.
     let cols: Vec<colour::HSB> = vec![
-        colour::BEIGE, 
-        colour::CHARTREUSE, 
-        colour::CORAL, 
-        colour::CORNFLOWER, 
-        colour::CRIMSON, 
-        colour::DEEP_SKY_BLUE, 
-        colour::SLATE_GRAY, 
+        colour::get_colour("beige"),
+        colour::get_colour("chartreuse"), 
+        colour::get_colour("coral"), 
+        colour::get_colour("cornflower"), 
+        colour::get_colour("crimson"), 
+        colour::get_colour("deep_sky_blue"), 
+        colour::get_colour("slate_gray"), 
     ];
 
     for c in cols {
@@ -106,7 +107,7 @@ fn change_colour(device: Device) {
         thread::sleep(Duration::from_millis(1000));
     }
 
-    let device = messages::set_device_state(&device, &colour::BEIGE, 1000, 0);
+    let device = messages::set_device_state(&device, &colour::get_colour("beige"), 1000, 0);
     display_response("Set state", &device.unwrap().response.unwrap());
 
 }
