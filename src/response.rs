@@ -132,8 +132,8 @@ pub struct StatePayload_String {
 #[derive(Debug)]
 pub struct PayloadHSBK {
     pub hue: u16,
-    pub saturation: u8,
-    pub brightness: u8,
+    pub saturation: u16,
+    pub brightness: u16,
     pub kelvin: u16,
 }
 
@@ -259,21 +259,20 @@ impl ResponseData {
         b.reverse();
         let bstr = as_boolean(b);
         bitstr_to_u16(&bstr)
-        // bitstr_to_u32(&bstr)
     }
 
-    fn saturation(resp: &ResponseData) -> u8 {
+    fn saturation(resp: &ResponseData) -> u16 {
         let mut b = extract(resp, 38, 2);
         b.reverse();
         let bstr = as_boolean(b);
-        bitstr_to_u8(&bstr)
+        bitstr_to_u16(&bstr)
     }
 
-    fn brightness(resp: &ResponseData) -> u8 {
+    fn brightness(resp: &ResponseData) -> u16 {
         let mut b = extract(resp, 40, 2);
         b.reverse();
         let bstr = as_boolean(b);
-        bitstr_to_u8(&bstr)
+        bitstr_to_u16(&bstr)
     }
 
     fn kelvin(resp: &ResponseData) -> u16 {
