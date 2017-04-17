@@ -185,6 +185,21 @@ mod tests {
     }
 }
 
+pub fn named_colours() -> Vec<String> {
+    vec!(
+        "beige".to_string(), 
+        "blue".to_string(), 
+        "chartreuse".to_string(),
+        "coral".to_string(), 
+        "cornflower".to_string(),
+        "crimson".to_string(), 
+        "deep_sky_blue".to_string(),
+        "green".to_string(), 
+        "red".to_string(), 
+        "slate_gray".to_string(), 
+    )
+}
+
 pub fn get_colour(s: &str) -> HSB {
     let colour: &str = &(s.to_lowercase());
     match colour {

@@ -7,6 +7,8 @@ use std::time::Duration;
 use std::thread;
 
 fn main() {
+    println!("Available named colours: {:?}", colour::named_colours());
+
     let device = find_device();
 
     let device = get_device_state(device);
