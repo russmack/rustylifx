@@ -15,19 +15,6 @@ pub struct Response {
     pub payload: Payload,
 }
 
-#[derive(Debug)]
-pub struct ResponseString {
-    pub size: String,
-    pub source: String,
-    pub mac_address: String,
-    pub firmware: String,
-    pub sequence_number: String,
-    pub reserved_1: String,
-    pub message_type: String,
-    pub reserved_2: String,
-    pub payload: PayloadString,
-}
-
 pub fn parse_response(resp_msg: ResponseData) -> Response {
     let mut resp = parse_header(&resp_msg);
 
@@ -35,19 +22,6 @@ pub fn parse_response(resp_msg: ResponseData) -> Response {
         3 => parse_payload_3(&resp_msg), 
         107 => parse_payload_107(&resp_msg),
         _ => Payload::None(()),
-    };
-
-    resp.payload = payload;
-
-    resp
-}
-pub fn parse_response_string(resp_msg: ResponseMessage) -> ResponseString {
-    let mut resp = parse_header_string(&resp_msg);
-
-    let payload = match resp.message_type.as_str() {
-        "3" => parse_payload_3_string(&resp_msg), 
-        "107" => parse_payload_107_string(&resp_msg),
-        _ => PayloadString::None(()),
     };
 
     resp.payload = payload;
@@ -72,23 +46,6 @@ fn parse_header(resp: &ResponseData) -> Response {
         payload: Payload::None(()),
     }
 }
-fn parse_header_string(resp: &ResponseMessage) -> ResponseString {
-    ResponseString {
-        size: ResponseMessage::size(&resp),
-        source: ResponseMessage::source(&resp),
-        mac_address: ResponseMessage::mac_address(&resp),
-        firmware: ResponseMessage::firmware(&resp),
-
-        // TODO: packed byte
-        sequence_number: ResponseMessage::sequence_number(&resp),
-
-        // Message segment: protocol header
-        reserved_1: ResponseMessage::reserved_1(&resp), // timestamp?
-        message_type: ResponseMessage::message_type(&resp),
-        reserved_2: ResponseMessage::reserved_2(&resp),
-        payload: PayloadString::None(()),
-    }
-}
 
 #[derive(Debug)]
 pub enum Payload {
@@ -98,22 +55,9 @@ pub enum Payload {
 }
 
 #[derive(Debug)]
-pub enum PayloadString {
-    None(()),
-    StateService(StateServicePayloadString),
-    State_String(StatePayload_String),
-}
-
-#[derive(Debug)]
 pub struct StateServicePayload {
-    pub service: u16, // String,
-    pub port: u32, // String,
-    pub unknown: String,
-}
-#[derive(Debug)]
-pub struct StateServicePayloadString {
-    pub service: String,
-    pub port: String,
+    pub service: u16,
+    pub port: u32,
     pub unknown: String,
 }
 
@@ -124,12 +68,6 @@ pub struct StatePayload {
 }
 
 #[derive(Debug)]
-pub struct StatePayload_String {
-    pub body: String,
-    pub hsbk: PayloadHSBK_String,
-}
-
-#[derive(Debug)]
 pub struct PayloadHSBK {
     pub hue: u16,
     pub saturation: u16,
@@ -137,26 +75,11 @@ pub struct PayloadHSBK {
     pub kelvin: u16,
 }
 
-#[derive(Debug)]
-pub struct PayloadHSBK_String {
-    pub hue: String,
-    pub saturation: String,
-    pub brightness: String,
-    pub kelvin: String,
-}
-
 fn parse_payload_3(resp: &ResponseData) -> Payload {
     Payload::StateService(StateServicePayload {
         service: ResponseData::service(&resp),
         port: ResponseData::port(&resp),
         unknown: ResponseData::unknown(&resp),
-    })
-}
-fn parse_payload_3_string(resp: &ResponseMessage) -> PayloadString {
-    PayloadString::StateService(StateServicePayloadString {
-        service: ResponseMessage::service(&resp),
-        port: ResponseMessage::port(&resp),
-        unknown: ResponseMessage::unknown(&resp),
     })
 }
 
@@ -172,20 +95,8 @@ fn parse_payload_107(resp: &ResponseData) -> Payload {
     })
 }
 
-fn parse_payload_107_string(resp: &ResponseMessage) -> PayloadString {
-    PayloadString::State_String(StatePayload_String {
-        body: ResponseMessage::body(&resp),
-        hsbk: PayloadHSBK_String {
-            hue: ResponseMessage::hue(&resp),
-            saturation: ResponseMessage::saturation(&resp),
-            brightness: ResponseMessage::brightness(&resp),
-            kelvin: ResponseMessage::kelvin(&resp),
-        },
-    })
-}
-
 pub struct ResponseData(pub Vec<u8>);
-pub struct ResponseMessage(pub Vec<u8>);
+// pub struct ResponseMessage(pub Vec<u8>);
 
 impl ResponseData {
     fn size(resp: &ResponseData) -> u16 {
@@ -283,121 +194,107 @@ impl ResponseData {
     }
 }
 
-impl ResponseMessage {
-    fn size(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 0, 2);
-        b.reverse();
-        as_base10_string(b)
-    }
-
-    fn source(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 4, 4);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-
-    fn mac_address(resp: &ResponseMessage) -> String {
-        as_hex(extract_string(resp, 8, 8))
-    }
-
-    fn firmware(resp: &ResponseMessage) -> String {
-        as_ascii(extract_string(resp, 16, 6))
-    }
-
-    fn sequence_number(resp: &ResponseMessage) -> String {
-        as_base10_string(extract_string(resp, 23, 1))
-    }
-
-    fn reserved_1(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 24, 8);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-
-    fn message_type(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 32, 2);
-        b.reverse();
-        as_base10_string(b)
-    }
-
-    fn reserved_2(resp: &ResponseMessage) -> String {
-        let b = extract_string(resp, 34, 2);
-        as_base10_string(b)  // TODO: may not be base10, but undocumented.
-    }
-
-    fn service(resp: &ResponseMessage) -> String {
-        as_base10_string(extract_string(resp, 36, 1))
-    }
-
-    fn port(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 37, 2);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-
-    fn unknown(resp: &ResponseMessage) -> String {
-        let end = resp.0.len() - 39;
-        let b = extract_string(resp, 39, end);
-        // as_base10(b)  // TODO: may not be base10, but undocumented.
-        as_hex(b)
-    }
-
-    fn body(resp: &ResponseMessage) -> String {
-        let end = resp.0.len() - 36;
-        as_hex(extract_string(&resp, 36, end))
-    }
-
-    fn hue(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 36, 2);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-
-    fn saturation(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 38, 2);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-
-    fn brightness(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 40, 2);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-
-    fn kelvin(resp: &ResponseMessage) -> String {
-        let mut b = extract_string(resp, 42, 2);
-        b.reverse();
-        let bstr = as_boolean(b);
-        bitstr_to_u32(&bstr).to_string()
-    }
-}
+// impl ResponseMessage {
+// fn size(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 0, 2);
+// b.reverse();
+// as_base10_string(b)
+// }
+//
+// fn source(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 4, 4);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+//
+// fn mac_address(resp: &ResponseMessage) -> String {
+// as_hex(extract_string(resp, 8, 8))
+// }
+//
+// fn firmware(resp: &ResponseMessage) -> String {
+// as_ascii(extract_string(resp, 16, 6))
+// }
+//
+// fn sequence_number(resp: &ResponseMessage) -> String {
+// as_base10_string(extract_string(resp, 23, 1))
+// }
+//
+// fn reserved_1(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 24, 8);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+//
+// fn message_type(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 32, 2);
+// b.reverse();
+// as_base10_string(b)
+// }
+//
+// fn reserved_2(resp: &ResponseMessage) -> String {
+// let b = extract_string(resp, 34, 2);
+// as_base10_string(b)  // TODO: may not be base10, but undocumented.
+// }
+//
+// fn service(resp: &ResponseMessage) -> String {
+// as_base10_string(extract_string(resp, 36, 1))
+// }
+//
+// fn port(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 37, 2);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+//
+// fn unknown(resp: &ResponseMessage) -> String {
+// let end = resp.0.len() - 39;
+// let b = extract_string(resp, 39, end);
+// as_base10(b)  // TODO: may not be base10, but undocumented.
+// as_hex(b)
+// }
+//
+// fn body(resp: &ResponseMessage) -> String {
+// let end = resp.0.len() - 36;
+// as_hex(extract_string(&resp, 36, end))
+// }
+//
+// fn hue(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 36, 2);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+//
+// fn saturation(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 38, 2);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+//
+// fn brightness(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 40, 2);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+//
+// fn kelvin(resp: &ResponseMessage) -> String {
+// let mut b = extract_string(resp, 42, 2);
+// b.reverse();
+// let bstr = as_boolean(b);
+// bitstr_to_u32(&bstr).to_string()
+// }
+// }
+//
 
 fn extract(resp: &ResponseData, start: usize, len: usize) -> Vec<u8> {
     let mut sub = vec![0u8; len];
     sub[..len].clone_from_slice(&resp.0[start..start + len]);
     sub
-}
-
-fn extract_string(resp: &ResponseMessage, start: usize, len: usize) -> Vec<u8> {
-    let mut sub = vec![0u8; len];
-    sub[..len].clone_from_slice(&resp.0[start..start + len]);
-    sub
-}
-
-fn as_base10_string(v: Vec<u8>) -> String {
-    let mut s = "".to_string();
-    for b in v {
-        s.push_str(format!("{}", b).as_str());
-    }
-    let n = s.parse::<u16>().unwrap();
-    n.to_string()
 }
 
 fn as_base10(v: Vec<u8>) -> u16 {
@@ -442,8 +339,7 @@ fn bitstr_to_u32(bits: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{ResponseData, ResponseMessage, extract, as_base10, as_ascii, as_boolean, as_hex,
-                bitstr_to_u32};
+    use super::{ResponseData, extract, as_base10, as_ascii, as_boolean, as_hex, bitstr_to_u32};
 
     #[test]
     fn test_extract() {
