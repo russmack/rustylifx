@@ -14,6 +14,8 @@ lifxcmd - http://github.com/russmack/lifxcmd
 
 A Rust command line program for controlling a LIFX light bulb.
 
+----
+
 ## Usage
 ```
 cargo run --example main
