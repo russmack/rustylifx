@@ -10,12 +10,9 @@ A Rust library implementing the LIFX smart lightbulb protocol.
 
 Required by:
 
-lifxcmd(http://github.com/russmack/lifxcmd)
-```
-lifxcmd ( http://github.com/russmack/lifxcmd )
+lifxcmd - http://github.com/russmack/lifxcmd
 
 A Rust command line program for controlling a LIFX light bulb.
-```
 
 ## Usage
 ```
