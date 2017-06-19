@@ -26,7 +26,7 @@ cargo run --example main
 
 - [X] Find device
 - [X] Get device state
-- [X} Set device colour
+- [X] Set device colour
 - [X] Colour model conversions
 
 ## License
