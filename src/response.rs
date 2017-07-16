@@ -51,6 +51,7 @@ fn parse_header(resp: &ResponseData) -> Response {
 pub enum Payload {
     None(()),
     StateService(StateServicePayload),
+    StatePower(StatePowerPayload),
     State(StatePayload),
 }
 
@@ -59,6 +60,11 @@ pub struct StateServicePayload {
     pub service: u16,
     pub port: u32,
     pub unknown: String,
+}
+
+#[derive(Debug)]
+pub struct StatePowerPayload {
+    pub level: u16,
 }
 
 #[derive(Debug)]
@@ -80,6 +86,12 @@ fn parse_payload_3(resp: &ResponseData) -> Payload {
         service: ResponseData::service(&resp),
         port: ResponseData::port(&resp),
         unknown: ResponseData::unknown(&resp),
+    })
+}
+
+fn parse_payload_22(resp: &ResponseData) -> Payload {
+    Payload::StatePower(StatePowerPayload {
+        level: ResponseData::level(&resp),
     })
 }
 
@@ -151,6 +163,10 @@ impl ResponseData {
         b.reverse();
         let bstr = as_boolean(b);
         bitstr_to_u32(&bstr)
+    }
+
+    fn level(resp: &ResponseData) -> u16 {
+        as_base10(extract(&resp, 36, 1))
     }
 
     fn unknown(resp: &ResponseData) -> String {

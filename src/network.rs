@@ -25,6 +25,18 @@ impl Network {
 }
 
 impl Device {
+    pub fn send_get_device_power_state(&self, msg_bin: RequestBin) -> Result<Device, io::Error> {
+        let use_broadcast = false;
+
+        send(msg_bin, use_broadcast, self.socket_addr)
+    }
+
+    pub fn send_set_device_power_state(&self, msg_bin: RequestBin) -> Result<Device, io::Error> {
+        let use_broadcast = false;
+
+        send(msg_bin, use_broadcast, self.socket_addr)
+    }
+
     pub fn send_get_device_state(&self, msg_bin: RequestBin) -> Result<Device, io::Error> {
         let use_broadcast = false;
 
