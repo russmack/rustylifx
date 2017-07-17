@@ -1,7 +1,9 @@
 [package]
 name = "rustylifx"
-version = "0.1.0"
-authors = ["russ"]
+version = "0.2.0"
+authors = ["Russell Mackenzie <russmackdev@gmail.com"]
+description = "Library for interacting with LIFX devices."
+
 
 [dependencies]
 

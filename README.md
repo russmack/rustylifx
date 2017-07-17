@@ -24,6 +24,8 @@ cargo run --example main
 ## Features
 
 - [X] Find device
+- [X] Power on device
+- [X] Power off device
 - [X] Get device state
 - [X] Set device colour
 - [X] Colour model conversions
