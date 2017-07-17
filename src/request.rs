@@ -4,6 +4,7 @@ use std::str;
 
 type Bit = bool;
 
+#[derive(Debug)]
 pub struct Request {
     header: Header,
     payload: Payload,
@@ -18,11 +19,13 @@ impl Request {
     }
 }
 
+#[derive(Debug)]
 pub struct Payload(pub Vec<u8>);
 
 // RequestBin newtype
 pub struct RequestBin(pub Vec<u8>);
 
+#[derive(Debug)]
 pub struct Header {
     frame: Frame,
     frame_address: FrameAddress,
@@ -42,6 +45,7 @@ impl Header {
     }
 }
 
+#[derive(Debug)]
 pub struct Frame {
     // First 2 bytes
     size: u16,
@@ -71,6 +75,7 @@ impl Frame {
     }
 }
 
+#[derive(Debug)]
 pub struct FrameAddress {
     // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
     target: [u8; 8],
@@ -100,6 +105,7 @@ impl FrameAddress {
     }
 }
 
+#[derive(Debug)]
 pub struct ProtocolHeader {
     reserved: u64,
     message_type: u16,
@@ -275,6 +281,7 @@ impl From<Request> for RequestBin {
         msg_bin.extend_with_u16(msg.header.protocol_header.reserved_2);
 
         // Append payload if required.
+        // Payload for 102.
         if msg.header.protocol_header.message_type == 102 {
             msg_bin.extend_with_u8(msg.payload.0[..1][0]);
             let mut p_arr_h = [0u8; 2];
@@ -292,6 +299,14 @@ impl From<Request> for RequestBin {
             msg_bin.extend_with_u8_array_2(p_arr_b);
             msg_bin.extend_with_u8_array_2(p_arr_k);
             msg_bin.extend_with_u8_array_4(p_arr_d);
+        }
+
+        // Payload for 21.
+        if msg.header.protocol_header.message_type == 21 {
+            msg_bin.extend_with_u8(msg.payload.0[..1][0]);
+            let mut p_arr_p = [0u8; 2];
+            p_arr_p.clone_from_slice(&msg.payload.0[1..3]);
+            msg_bin.extend_with_u8_array_2(p_arr_p);
         }
 
         // Set message size in first 2 bytes of request, Frame.

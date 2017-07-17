@@ -75,7 +75,7 @@ fn set_device_power_state(device: &network::Device,
 
     //! # Sample payload:
     //! ```
-    //! vec![0x00, 0xF7];
+    //! vec![0x00, 0x00];
     //! ```
 
     let reserved = vec![0x00];
