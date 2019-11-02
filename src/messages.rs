@@ -22,7 +22,7 @@ pub fn get_service() -> Result<network::Device, io::Error> {
 
     let msg_bin = RequestBin::from(msg);
 
-    let resp = match network::Network::send_discover_devices(msg_bin) {
+    match network::Network::send_discover_devices(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
@@ -31,8 +31,7 @@ pub fn get_service() -> Result<network::Device, io::Error> {
             println!("bad send: {}", e);
             Err(e)
         }
-    };
-    resp
+    }
 }
 
 /// Gets the power state of the specified device.
@@ -47,7 +46,7 @@ pub fn get_device_power_state(device: network::Device) -> Result<network::Device
 
     let msg_bin = RequestBin::from(msg);
 
-    let resp = match device.send_get_device_power_state(msg_bin) {
+    match device.send_get_device_power_state(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
@@ -56,8 +55,7 @@ pub fn get_device_power_state(device: network::Device) -> Result<network::Device
             println!("bad send: {}", e);
             Err(e)
         }
-    };
-    resp
+    }
 }
 
 pub fn set_device_on(device: &network::Device) -> Result<network::Device, io::Error> {
@@ -96,7 +94,7 @@ fn set_device_power_state(device: &network::Device,
 
     let msg_bin = RequestBin::from(msg);
 
-    let resp = match device.send_set_device_power_state(msg_bin) {
+    match device.send_set_device_power_state(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
@@ -105,8 +103,7 @@ fn set_device_power_state(device: &network::Device,
             println!("bad send: {}", e);
             Err(e)
         }
-    };
-    resp
+    }
 }
 
 /// Gets the state of the specified device.
@@ -121,7 +118,7 @@ pub fn get_device_state(device: network::Device) -> Result<network::Device, io::
 
     let msg_bin = RequestBin::from(msg);
 
-    let resp = match device.send_get_device_state(msg_bin) {
+    match device.send_get_device_state(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
@@ -130,8 +127,7 @@ pub fn get_device_state(device: network::Device) -> Result<network::Device, io::
             println!("bad send: {}", e);
             Err(e)
         }
-    };
-    resp
+    }
 }
 
 /// Sets the state of the specified device.
@@ -147,19 +143,19 @@ pub fn set_device_state(device: &network::Device,
     //! ```
 
     let reserved = vec![0x00];
-    let h = colour::hue_degrees_to_word(hsb.hue).to_vec();
-    let s = colour::saturation_percent_to_word(hsb.saturation).to_vec();
-    let b = colour::brightness_percent_to_word(hsb.brightness).to_vec();
-    let k = RequestBin::u16_to_u8_array(kelvin).to_vec();
-    let d = RequestBin::u32_to_u8_array(duration).to_vec();
+    let hue = colour::hue_degrees_to_word(hsb.hue).to_vec();
+    let sat = colour::saturation_percent_to_word(hsb.saturation).to_vec();
+    let bri = colour::brightness_percent_to_word(hsb.brightness).to_vec();
+    let kel = RequestBin::u16_to_u8_array(kelvin).to_vec();
+    let dur = RequestBin::u32_to_u8_array(duration).to_vec();
 
     let payload_bytes = vec![
         &reserved[..],
-        &h[..],
-        &s[..],
-        &b[..],
-        &k[..],
-        &d[..],
+        &hue[..],
+        &sat[..],
+        &bri[..],
+        &kel[..],
+        &dur[..],
     ].concat();
 
     let msg = 
@@ -172,7 +168,7 @@ pub fn set_device_state(device: &network::Device,
 
     let msg_bin = RequestBin::from(msg);
 
-    let resp = match device.send_set_device_state(msg_bin) {
+    match device.send_set_device_state(msg_bin) {
         Ok(r) => {
             println!("good send");
             Ok(r)
@@ -181,6 +177,5 @@ pub fn set_device_state(device: &network::Device,
             println!("bad send: {}", e);
             Err(e)
         }
-    };
-    resp
+    }
 }

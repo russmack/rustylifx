@@ -71,8 +71,7 @@ pub fn saturation_percent_to_word(percent: u8) -> [u8; 2] {
 
 pub fn saturation_word_to_percent(word: u16) -> u8 {
     let f = word as f32 / WORDSIZE;
-    let p = (f * 100.0) as u8;
-    p
+    (f * 100.0) as u8
 }
 
 pub fn brightness_percent_to_word(percent: u8) -> [u8; 2] {
@@ -81,8 +80,7 @@ pub fn brightness_percent_to_word(percent: u8) -> [u8; 2] {
 
 pub fn brightness_word_to_percent(word: u16) -> u8 {
     let f = word as f32 / WORDSIZE;
-    let p = (f * 100.0) as u8;
-    p
+    (f * 100.0) as u8
 }
 
 pub fn rgb_to_hsv(rgb: RGB) -> HSB {

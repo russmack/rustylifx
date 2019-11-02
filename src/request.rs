@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::str;
-
 type Bit = bool;
 
 #[derive(Debug)]
@@ -13,8 +11,8 @@ pub struct Request {
 impl Request {
     pub fn new(header: Header, payload: Payload) -> Request {
         Request {
-            header: header,
-            payload: payload,
+            header,
+            payload,
         }
     }
 }
@@ -38,9 +36,9 @@ impl Header {
                protocol_header: ProtocolHeader)
                -> Header {
         Header {
-            frame: frame,
-            frame_address: frame_address,
-            protocol_header: protocol_header,
+            frame,
+            frame_address,
+            protocol_header,
         }
     }
 }
@@ -66,11 +64,11 @@ impl Frame {
     pub fn new(origin: u8, tagged: bool, addressable: bool, protocol: u16, source: u32) -> Frame {
         Frame {
             size: 0,
-            origin: origin,
-            tagged: tagged,
-            addressable: addressable,
-            protocol: protocol,
-            source: source,
+            origin,
+            tagged,
+            addressable,
+            protocol,
+            source,
         }
     }
 }
@@ -95,12 +93,12 @@ impl FrameAddress {
                sequence: u8)
                -> FrameAddress {
         FrameAddress {
-            target: target,
-            reserved: reserved,
-            reserved_2: reserved_2,
-            ack_required: ack_required,
-            res_required: res_required,
-            sequence: sequence,
+            target,
+            reserved,
+            reserved_2,
+            ack_required,
+            res_required,
+            sequence,
         }
     }
 }
@@ -115,9 +113,9 @@ pub struct ProtocolHeader {
 impl ProtocolHeader {
     pub fn new(reserved: u64, message_type: u16, reserved_2: u16) -> ProtocolHeader {
         ProtocolHeader {
-            reserved: reserved,
-            message_type: message_type,
-            reserved_2: reserved_2,
+            reserved,
+            message_type,
+            reserved_2,
         }
     }
 }
@@ -168,7 +166,7 @@ impl From<u8> for BitOrigin {
         let s = format!("{:02b}", o);
         let v: Vec<Bit> = s.as_bytes()
             .iter()
-            .map(|&n| if n == 49 { true } else { false })
+            .map(|&n| n == 49)
             .collect();
         BitOrigin([v[0], v[1]])
     }
@@ -182,7 +180,7 @@ impl From<u16> for BitProtocol {
         let s = format!("{:012b}", p);
         let v: Vec<Bit> = s.as_bytes()
             .iter()
-            .map(|&n| if n == 49 { true } else { false })
+            .map(|&n| n == 49)
             .collect();
         BitProtocol([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11]])
     }
@@ -208,7 +206,7 @@ impl<'a> From<&'a FrameAddress> for BitFrameAddress {
                 let s = format!("{:06b}", f.reserved_2);
                 let v: Vec<bool> = s.as_bytes()
                     .iter()
-                    .map(|&n| if n == 49 { true } else { false })
+                    .map(|&n| n == 49)
                     .collect();
                 let a: [Bit; 6] = [v[0], v[1], v[2], v[3], v[4], v[5]];
                 a
