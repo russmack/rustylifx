@@ -1,4 +1,5 @@
 use std::io;
+use std::time::Duration;
 use std::net::{IpAddr, SocketAddr, UdpSocket, Ipv4Addr};
 
 use request::RequestBin;
@@ -57,6 +58,8 @@ fn send(msg_bin: RequestBin,
     let local_ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
     let local_sock_addr = SocketAddr::new(local_ip, 56700);
     let local_sock = try!(UdpSocket::bind(local_sock_addr));
+    let _ = local_sock.set_write_timeout(Some(Duration::new(3, 0)));
+    let _ = local_sock.set_read_timeout(Some(Duration::new(3, 0)));
     local_sock.set_broadcast(broadcast)?;
 
     let msg = &msg_bin.0;
