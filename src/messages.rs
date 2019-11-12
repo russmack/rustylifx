@@ -24,11 +24,11 @@ pub fn get_service() -> Result<network::Device, io::Error> {
 
     match network::Network::send_discover_devices(msg_bin) {
         Ok(r) => {
-            println!("good send");
+            network::print_debug("good send");
             Ok(r)
         }
         Err(e) => {
-            println!("bad send: {}", e);
+            network::print_debug(&format!("bad send: {}", e));
             Err(e)
         }
     }
@@ -48,11 +48,11 @@ pub fn get_device_power_state(device: network::Device) -> Result<network::Device
 
     match device.send_get_device_power_state(msg_bin) {
         Ok(r) => {
-            println!("good send");
+            network::print_debug("good send");
             Ok(r)
         }
         Err(e) => {
-            println!("bad send: {}", e);
+            network::print_debug(&format!("bad send: {}", e));
             Err(e)
         }
     }
@@ -96,11 +96,11 @@ fn set_device_power_state(device: &network::Device,
 
     match device.send_set_device_power_state(msg_bin) {
         Ok(r) => {
-            println!("good send");
+            network::print_debug("good send");
             Ok(r)
         }
         Err(e) => {
-            println!("bad send: {}", e);
+            network::print_debug(&format!("bad send: {}", e));
             Err(e)
         }
     }
@@ -120,11 +120,11 @@ pub fn get_device_state(device: network::Device) -> Result<network::Device, io::
 
     match device.send_get_device_state(msg_bin) {
         Ok(r) => {
-            println!("good send");
+            network::print_debug("good send");
             Ok(r)
         }
         Err(e) => {
-            println!("bad send: {}", e);
+            network::print_debug(&format!("bad send: {}", e));
             Err(e)
         }
     }
@@ -170,11 +170,11 @@ pub fn set_device_state(device: &network::Device,
 
     match device.send_set_device_state(msg_bin) {
         Ok(r) => {
-            println!("good send");
+            network::print_debug("good send");
             Ok(r)
         }
         Err(e) => {
-            println!("bad send: {}", e);
+            network::print_debug(&format!("bad send: {}", e));
             Err(e)
         }
     }

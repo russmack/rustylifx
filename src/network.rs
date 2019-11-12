@@ -6,6 +6,8 @@ use request::RequestBin;
 use response;
 use response::Response;
 
+const DEBUG_ENABLED: bool = false;
+
 pub struct Network {}
 
 /// Represents a device on the network, as well as a response.
@@ -64,14 +66,33 @@ fn send(msg_bin: RequestBin,
 
     let msg = &msg_bin.0;
     display(msg);
-    try!(local_sock.send_to(&msg, device_socket_addr));
+    print_debug("** sending...");
+    let send_res = match local_sock.send_to(&msg, device_socket_addr) {
+        Ok(v) => {
+            print_debug("** sent");
+        },
+        Err(e) => {
+            print_debug(&format!("** err sending: {}", e));
+            return Err(e);
+        },
+    };
 
     // Read from the socket
+    print_debug("** reading...");
     let mut resp_buf = [0; 1024];
-    let (sz, src_sock_addr) = try!(local_sock.recv_from(&mut resp_buf));
+    let (sz, src_sock_addr) = match local_sock.recv_from(&mut resp_buf) {
+        Ok(v)   => {
+            print_debug("** response read done");
+            v
+        },
+        Err(e)  => {
+            print_debug(&format!("** response read failed: {}", e));
+            return Err(e);
+        },
+    };
 
     let resp_msg = &resp_buf[0..sz];
-    println!("Received from {} : \n{:?}", src_sock_addr, resp_msg);
+    print_debug(&format!("Received from {} : \n{:?}", src_sock_addr, resp_msg));
 
     let resp = response::parse_response(response::ResponseData(resp_msg.to_vec()));
     // let resp = response::parse_response(response::ResponseMessage(resp_msg.to_vec()));
@@ -85,11 +106,20 @@ fn send(msg_bin: RequestBin,
 }
 
 fn display(msg_bin: &Vec<u8>) {
-    println!("---- Sending request: ----");
-    println!("Dec: {:?}", msg_bin);
-    print!("Bytes: ");
+    print_debug("---- Sending request: ----\n");
+    print_debug(&format!("Dec: {:?}\n", msg_bin));
+    print_debug("Bytes: \n");
     for b in msg_bin.iter() {
-        print!("{:x} ", b);
+        print_debug(&format!("{:x} ", b));
     }
-    println!("\n----");
+    print_debug("\n----\n");
 }
+
+pub fn print_debug(s: &str) {
+    if !DEBUG_ENABLED {
+        return;
+    }
+
+    print!("{}", s);
+}
+
