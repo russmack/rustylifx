@@ -233,9 +233,7 @@ impl From<Request> for RequestBin {
         fr_pt2[1] = bitframe.origin.0[1];
         fr_pt2[2] = bitframe.tagged;
         fr_pt2[3] = bitframe.addressable;
-        for i in 0..bitframe.protocol.0.len() {
-            fr_pt2[i + 4] = bitframe.protocol.0[i];
-        }
+        fr_pt2[4..(bitframe.protocol.0.len() + 4)].clone_from_slice(&bitframe.protocol.0[..]);
 
         let (fr_pt2_a_bits, fr_pt2_b_bits) = fr_pt2.split_at(8);
         let fr_pt2_a = RequestBin::bits_to_byte(fr_pt2_a_bits);
@@ -259,9 +257,9 @@ impl From<Request> for RequestBin {
 
         let mut fa_pt2: [Bit; 8] = [false; 8];
         let rlen = bitframeaddress.reserved_2.len();
-        for i in 0..rlen {
-            fa_pt2[i] = bitframeaddress.reserved_2[i];
-        }
+
+        fa_pt2[..rlen].clone_from_slice(&bitframeaddress.reserved_2[..rlen]);
+
         fa_pt2[rlen + 0] = bitframeaddress.ack_required;
         fa_pt2[rlen + 1] = bitframeaddress.res_required;
 
@@ -378,10 +376,7 @@ impl RequestBin {
     }
 
     fn bool_to_u8_array(b: bool) -> [u8; 1] {
-        match b {
-            true => [1],
-            false => [0],
-        }
+        if b { [1] } else { [0] }
     }
 
     pub fn u16_to_u8_array(x: u16) -> [u8; 2] {
