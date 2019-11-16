@@ -59,7 +59,7 @@ fn send(msg_bin: RequestBin,
         -> Result<Device, io::Error> {
     let local_ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
     let local_sock_addr = SocketAddr::new(local_ip, 56700);
-    let local_sock = try!(UdpSocket::bind(local_sock_addr));
+    let local_sock = UdpSocket::bind(local_sock_addr)?;
     let _ = local_sock.set_write_timeout(Some(Duration::new(3, 0)));
     let _ = local_sock.set_read_timeout(Some(Duration::new(3, 0)));
     local_sock.set_broadcast(broadcast)?;
@@ -67,9 +67,9 @@ fn send(msg_bin: RequestBin,
     let msg = &msg_bin.0;
     display(msg);
     print_debug("** sending...");
-    let send_res = match local_sock.send_to(&msg, device_socket_addr) {
+    match local_sock.send_to(&msg, device_socket_addr) {
         Ok(v) => {
-            print_debug("** sent");
+            print_debug(&format!("** sent {} bytes.", v));
         },
         Err(e) => {
             print_debug(&format!("** err sending: {}", e));
@@ -105,7 +105,7 @@ fn send(msg_bin: RequestBin,
     Ok(device)
 }
 
-fn display(msg_bin: &Vec<u8>) {
+fn display(msg_bin: &[u8]) {
     print_debug("---- Sending request: ----\n");
     print_debug(&format!("Dec: {:?}\n", msg_bin));
     print_debug("Bytes: \n");
