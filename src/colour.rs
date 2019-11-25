@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 /// HSB colour representation - hue, saturation, brightness (aka value).
 /// Aka HSV (LIFX terminology) - hue, saturation, value.
 /// This is not the same as HSL as used in CSS.
+/// LIFX uses HSB aka HSV, not HSL.
 #[derive(Debug)]
 pub struct HSB {
     pub hue: u16,
@@ -46,32 +47,34 @@ impl From<HSBK> for HSB {
     }
 }
 
-/// The max value of bytes used to represent the colour element as bytes.
-const WORDSIZE: f32 = 65535.0;
+/// The max value of the two byte representation of colour element as used in the protocol.
+const WORD_SIZE: usize = 65535;
+const DEGREES_UBOUND: usize = 360;
+const PERCENT_UBOUND: usize = 100;
 
-// LIFX uses HSB aka HSV, not HSL.
+// (WORD_SIZE / DEGREES_UBOUND) is ~182.0417
+// The two-byte represenation only represents integers, so decimals will be truncated.
+// This can result in a get_state returning a slightly different result from the 
+// preceding set_state for hue, saturation, and brightness.
 
 pub fn hue_degrees_to_word(degrees: u16) -> [u8; 2] {
-    let f = degrees as f32 / 360.0 * WORDSIZE;
-    let b = RequestBin::u16_to_u8_array(f as u16);
+    let f = degrees as f64 * WORD_SIZE as f64 / DEGREES_UBOUND as f64;
+    let b = RequestBin::u16_to_u8_array(f.round() as u16);
     [b[0], b[1]]
 }
 
 pub fn hue_word_to_degrees(word: u16) -> u16 {
-    let f: f32 = word as f32 / WORDSIZE;
-    let d: u16 = (f * 360.0) as u16;
-    d
+    (word as usize * 360 / WORD_SIZE) as u16
 }
 
 pub fn saturation_percent_to_word(percent: u8) -> [u8; 2] {
-    let f = percent as f32 / 100.0 * WORDSIZE;
-    let b = RequestBin::u16_to_u8_array(f as u16);
+    let f: f64 = percent as f64 * WORD_SIZE as f64 / 100.0;
+    let b = RequestBin::u16_to_u8_array(f.round() as u16);
     [b[0], b[1]]
 }
 
 pub fn saturation_word_to_percent(word: u16) -> u8 {
-    let f = word as f32 / WORDSIZE;
-    (f * 100.0) as u8
+    (word as usize * 100 / WORD_SIZE) as u8
 }
 
 pub fn brightness_percent_to_word(percent: u8) -> [u8; 2] {
@@ -79,8 +82,7 @@ pub fn brightness_percent_to_word(percent: u8) -> [u8; 2] {
 }
 
 pub fn brightness_word_to_percent(word: u16) -> u8 {
-    let f = word as f32 / WORDSIZE;
-    (f * 100.0) as u8
+    (word as usize * 100 / WORD_SIZE) as u8
 }
 
 pub fn rgb_to_hsv(rgb: RGB) -> HSB {
@@ -126,6 +128,9 @@ mod tests {
     #[test]
     fn test_hue_degrees_to_word() {
         assert_eq!([0x55, 0x55], hue_degrees_to_word(120));
+        assert_eq!([0x47, 0x1C], hue_degrees_to_word(100));
+        assert_eq!([0x44, 0x44], hue_degrees_to_word(96));
+        assert_eq!([0x43, 0x8E], hue_degrees_to_word(95));
     }
 
     #[test]
@@ -137,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_saturation_percent_to_word() {
-        assert_eq!([0x7F, 0xFF], saturation_percent_to_word(50));
+        assert_eq!([0x80, 0x00], saturation_percent_to_word(50));
     }
 
     #[test]
