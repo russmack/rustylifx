@@ -33,7 +33,7 @@ fn find_device() -> Device {
 }
 
 fn get_device_state(device: Device) -> Device {
-    let device = messages::get_device_state(device).unwrap();
+    let device = messages::get_device_state(&device).unwrap();
     match device.response {
         Some(ref resp) => display_response("State", resp),
         None => panic!("no response"),
