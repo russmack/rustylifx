@@ -3,6 +3,7 @@ extern crate rustylifx;
 use rustylifx::{colour, messages, response};
 use rustylifx::network::Device;
 
+use std::process;
 use std::time::Duration;
 use std::thread;
 
@@ -13,6 +14,14 @@ fn main() {
 
     let device = get_device_state(device);
 
+    let device = match messages::get_device_power_state(&device) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("failed getting device power state: {:?}", e);
+            process::exit(1);
+        },
+    };
+
     parse_hsvk(&device);
 
     change_colour(device);
@@ -21,7 +30,13 @@ fn main() {
 }
 
 fn find_device() -> Device {
-    let device = messages::get_service().unwrap();
+    let device = match messages::get_service() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("failed getting device power state: {:?}", e);
+            process::exit(1);
+        },
+    };
 
     match device.response {
         Some(ref resp) => display_response("State service", &resp),
