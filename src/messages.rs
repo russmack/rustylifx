@@ -35,7 +35,7 @@ pub fn get_service() -> Result<network::Device, io::Error> {
 }
 
 /// Gets the power state of the specified device.
-pub fn get_device_power_state(device: network::Device) -> Result<network::Device, io::Error> {
+pub fn get_device_power_state(device: &network::Device) -> Result<network::Device, io::Error> {
     let msg = 
         Request::new(
             Header::new(
