@@ -3,8 +3,7 @@ use std::time::Duration;
 use std::net::{IpAddr, SocketAddr, UdpSocket, Ipv4Addr};
 
 use request::RequestBin;
-use response;
-use response::Response;
+use response::{self, Response};
 
 const DEBUG_ENABLED: bool = false;
 
@@ -19,7 +18,7 @@ pub struct Device {
 impl Network {
     pub fn send_discover_devices(msg_bin: RequestBin) -> Result<Device, io::Error> {
         let use_broadcast = true;
-        let broadcast_ip = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 0));
+        let broadcast_ip = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 255));
         let broadcast_port = 56700;
         let broadcast_sock_addr = SocketAddr::new(broadcast_ip, broadcast_port);
 
@@ -58,7 +57,10 @@ fn send(msg_bin: RequestBin,
         device_socket_addr: SocketAddr)
         -> Result<Device, io::Error> {
     let local_ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-    let local_sock_addr = SocketAddr::new(local_ip, 56700);
+    let local_sock_addr = match broadcast {
+        true => { SocketAddr::new(local_ip, 0) },
+        false =>  { SocketAddr::new(local_ip, 56700) },
+    };
     let local_sock = UdpSocket::bind(local_sock_addr)?;
     let _ = local_sock.set_write_timeout(Some(Duration::new(3, 0)));
     let _ = local_sock.set_read_timeout(Some(Duration::new(3, 0)));
@@ -82,7 +84,7 @@ fn send(msg_bin: RequestBin,
     let mut resp_buf = [0; 1024];
     let (sz, src_sock_addr) = match local_sock.recv_from(&mut resp_buf) {
         Ok(v)   => {
-            print_debug("** response read done");
+            print_debug("** response read done\n");
             v
         },
         Err(e)  => {
