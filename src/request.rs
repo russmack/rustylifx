@@ -10,10 +10,7 @@ pub struct Request {
 
 impl Request {
     pub fn new(header: Header, payload: Payload) -> Request {
-        Request {
-            header,
-            payload,
-        }
+        Request { header, payload }
     }
 }
 
@@ -31,10 +28,11 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn new(frame: Frame,
-               frame_address: FrameAddress,
-               protocol_header: ProtocolHeader)
-               -> Header {
+    pub fn new(
+        frame: Frame,
+        frame_address: FrameAddress,
+        protocol_header: ProtocolHeader,
+    ) -> Header {
         Header {
             frame,
             frame_address,
@@ -54,7 +52,7 @@ pub struct Frame {
     // For all other requests set to false and target to device MAC address.
     tagged: bool,
     addressable: bool, // Must be true
-    protocol: u16, // Must be 1024
+    protocol: u16,     // Must be 1024
 
     // Final 4 bytes
     source: u32,
@@ -85,13 +83,14 @@ pub struct FrameAddress {
 }
 
 impl FrameAddress {
-    pub fn new(target: [u8; 8],
-               reserved: [u8; 6],
-               reserved_2: u8,
-               ack_required: bool,
-               res_required: bool,
-               sequence: u8)
-               -> FrameAddress {
+    pub fn new(
+        target: [u8; 8],
+        reserved: [u8; 6],
+        reserved_2: u8,
+        ack_required: bool,
+        res_required: bool,
+        sequence: u8,
+    ) -> FrameAddress {
         FrameAddress {
             target,
             reserved,
@@ -131,7 +130,7 @@ struct BitFrame {
     // For discovery using Device::GetService use true and target all zeroes.
     // For all other requests set to false and target to device MAC address.
     tagged: Bit,
-    addressable: Bit, // Must be true
+    addressable: Bit,      // Must be true
     protocol: BitProtocol, // Must be 1024
 
     // Final 4 bytes
@@ -164,10 +163,7 @@ impl From<u8> for BitOrigin {
     // Convert boolean string to vec of bools
     fn from(o: u8) -> BitOrigin {
         let s = format!("{:02b}", o);
-        let v: Vec<Bit> = s.as_bytes()
-            .iter()
-            .map(|&n| n == 49)
-            .collect();
+        let v: Vec<Bit> = s.as_bytes().iter().map(|&n| n == 49).collect();
         BitOrigin([v[0], v[1]])
     }
 }
@@ -178,14 +174,12 @@ struct BitProtocol([Bit; 12]);
 impl From<u16> for BitProtocol {
     fn from(p: u16) -> BitProtocol {
         let s = format!("{:012b}", p);
-        let v: Vec<Bit> = s.as_bytes()
-            .iter()
-            .map(|&n| n == 49)
-            .collect();
-        BitProtocol([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11]])
+        let v: Vec<Bit> = s.as_bytes().iter().map(|&n| n == 49).collect();
+        BitProtocol([
+            v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11],
+        ])
     }
 }
-
 
 struct BitFrameAddress {
     // MAC address (6 bytes) left-justified with two 0 bytes, or all 0s for all devices
@@ -204,10 +198,7 @@ impl<'a> From<&'a FrameAddress> for BitFrameAddress {
             reserved: f.reserved,
             reserved_2: {
                 let s = format!("{:06b}", f.reserved_2);
-                let v: Vec<bool> = s.as_bytes()
-                    .iter()
-                    .map(|&n| n == 49)
-                    .collect();
+                let v: Vec<bool> = s.as_bytes().iter().map(|&n| n == 49).collect();
                 let a: [Bit; 6] = [v[0], v[1], v[2], v[3], v[4], v[5]];
                 a
             },
@@ -260,7 +251,7 @@ impl From<Request> for RequestBin {
 
         fa_pt2[..rlen].clone_from_slice(&bitframeaddress.reserved_2[..rlen]);
 
-        fa_pt2[rlen + 0] = bitframeaddress.ack_required;
+        fa_pt2[rlen] = bitframeaddress.ack_required;
         fa_pt2[rlen + 1] = bitframeaddress.res_required;
 
         let fa_pt2_byte = RequestBin::bits_to_byte(&fa_pt2);
@@ -316,12 +307,14 @@ impl From<Request> for RequestBin {
 
 impl RequestBin {
     fn bits_to_byte(bits: &[Bit]) -> u8 {
-        bits.iter().fold(0, |acc, b| (acc << 1) + if *b { 1 } else { 0 })
+        bits.iter()
+            .fold(0, |acc, b| (acc << 1) + if *b { 1 } else { 0 })
     }
 
     fn extend_with_bool(&mut self, field: bool) {
         // No need to reverse endianness, single byte.
-        self.0.extend_from_slice(&RequestBin::bool_to_u8_array(field));
+        self.0
+            .extend_from_slice(&RequestBin::bool_to_u8_array(field));
     }
 
     fn extend_with_u8(&mut self, field: u8) {
@@ -376,7 +369,11 @@ impl RequestBin {
     }
 
     fn bool_to_u8_array(b: bool) -> [u8; 1] {
-        if b { [1] } else { [0] }
+        if b {
+            [1]
+        } else {
+            [0]
+        }
     }
 
     pub fn u16_to_u8_array(x: u16) -> [u8; 2] {
@@ -405,4 +402,3 @@ impl RequestBin {
         [b1, b2, b3, b4, b5, b6, b7, b8]
     }
 }
-

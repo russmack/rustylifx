@@ -1,4 +1,5 @@
 use std::io;
+use std::net::Ipv4Addr;
 
 use colour;
 use network;
@@ -11,18 +12,19 @@ use request::Request;
 use request::RequestBin;
 
 /// Finds devices on the network.
-pub fn get_service() -> Result<network::Device, io::Error> {
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, true, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
-                ProtocolHeader::new(0, 2, 0)),
-            Payload(vec![]));
+pub fn get_service(subnet: Ipv4Addr) -> Result<network::Device, io::Error> {
+    let msg = Request::new(
+        Header::new(
+            Frame::new(0, true, true, 1024, 321),
+            FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
+            ProtocolHeader::new(0, 2, 0),
+        ),
+        Payload(vec![]),
+    );
 
     let msg_bin = RequestBin::from(msg);
 
-    match network::Network::send_discover_devices(msg_bin) {
+    match network::Network::send_discover_devices(msg_bin, subnet) {
         Ok(r) => {
             network::print_debug("good send");
             Ok(r)
@@ -36,13 +38,14 @@ pub fn get_service() -> Result<network::Device, io::Error> {
 
 /// Gets the power state of the specified device.
 pub fn get_device_power_state(device: &network::Device) -> Result<network::Device, io::Error> {
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, false, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
-                ProtocolHeader::new(0, 20, 0)),
-            Payload(vec![]));
+    let msg = Request::new(
+        Header::new(
+            Frame::new(0, false, true, 1024, 321),
+            FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
+            ProtocolHeader::new(0, 20, 0),
+        ),
+        Payload(vec![]),
+    );
 
     let msg_bin = RequestBin::from(msg);
 
@@ -67,10 +70,10 @@ pub fn set_device_off(device: &network::Device) -> Result<network::Device, io::E
 }
 
 /// Sets the power state of the specified device.
-fn set_device_power_state(device: &network::Device,
-                        power_level: u16)
-                        -> Result<network::Device, io::Error> {
-
+fn set_device_power_state(
+    device: &network::Device,
+    power_level: u16,
+) -> Result<network::Device, io::Error> {
     //! # Sample payload:
     //! ```
     //! vec![0x00, 0x00];
@@ -79,18 +82,16 @@ fn set_device_power_state(device: &network::Device,
     let reserved = vec![0x00];
     let p = RequestBin::u16_to_u8_array(power_level).to_vec();
 
-    let payload_bytes = vec![
-        &reserved[..],
-        &p[..],
-    ].concat();
+    let payload_bytes = vec![&reserved[..], &p[..]].concat();
 
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, false, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, true, false, 156),
-                ProtocolHeader::new(0, 21, 0)),
-            Payload(payload_bytes));
+    let msg = Request::new(
+        Header::new(
+            Frame::new(0, false, true, 1024, 321),
+            FrameAddress::new([0; 8], [0; 6], 0, true, false, 156),
+            ProtocolHeader::new(0, 21, 0),
+        ),
+        Payload(payload_bytes),
+    );
 
     let msg_bin = RequestBin::from(msg);
 
@@ -108,13 +109,14 @@ fn set_device_power_state(device: &network::Device,
 
 /// Gets the state of the specified device.
 pub fn get_device_state(device: &network::Device) -> Result<network::Device, io::Error> {
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, false, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
-                ProtocolHeader::new(0, 101, 0)),
-            Payload(vec![]));
+    let msg = Request::new(
+        Header::new(
+            Frame::new(0, false, true, 1024, 321),
+            FrameAddress::new([0; 8], [0; 6], 0, false, false, 156),
+            ProtocolHeader::new(0, 101, 0),
+        ),
+        Payload(vec![]),
+    );
 
     let msg_bin = RequestBin::from(msg);
 
@@ -131,12 +133,12 @@ pub fn get_device_state(device: &network::Device) -> Result<network::Device, io:
 }
 
 /// Sets the state of the specified device.
-pub fn set_device_state(device: &network::Device,
-                        hsb: &colour::HSB,
-                        kelvin: u16,
-                        duration: u32)
-                        -> Result<network::Device, io::Error> {
-
+pub fn set_device_state(
+    device: &network::Device,
+    hsb: &colour::Hsb,
+    kelvin: u16,
+    duration: u32,
+) -> Result<network::Device, io::Error> {
     //! # Sample payload:
     //! ```
     //! vec![0x00, 0xF7, 0x77, 0xFF, 0x0F, 0x4F, 0xFF, 0xA0, 0xAA, 0x00, 0x00, 0x03, 0xe8];
@@ -156,15 +158,17 @@ pub fn set_device_state(device: &network::Device,
         &bri[..],
         &kel[..],
         &dur[..],
-    ].concat();
+    ]
+    .concat();
 
-    let msg = 
-        Request::new(
-            Header::new(
-                Frame::new(0, false, true, 1024, 321),
-                FrameAddress::new([0; 8], [0; 6], 0, true, false, 156),
-                ProtocolHeader::new(0, 102, 0)),
-            Payload(payload_bytes));
+    let msg = Request::new(
+        Header::new(
+            Frame::new(0, false, true, 1024, 321),
+            FrameAddress::new([0; 8], [0; 6], 0, true, false, 156),
+            ProtocolHeader::new(0, 102, 0),
+        ),
+        Payload(payload_bytes),
+    );
 
     let msg_bin = RequestBin::from(msg);
 

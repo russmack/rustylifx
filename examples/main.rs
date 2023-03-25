@@ -1,11 +1,11 @@
 extern crate rustylifx;
 
-use rustylifx::{colour, messages, response};
 use rustylifx::network::Device;
+use rustylifx::{colour, messages, response};
 
 use std::process;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 fn main() {
     println!("Available named colours: {:?}", colour::named_colours());
@@ -19,7 +19,7 @@ fn main() {
         Err(e) => {
             println!("failed getting device power state: {:?}", e);
             process::exit(1);
-        },
+        }
     };
 
     parse_hsvk(&device);
@@ -35,7 +35,7 @@ fn find_device() -> Device {
         Err(e) => {
             println!("failed getting device power state: {:?}", e);
             process::exit(1);
-        },
+        }
     };
 
     match device.response {
@@ -74,14 +74,20 @@ fn parse_hsvk(device: &Device) {
         Some(v) => {
             println!("current payload body: {:?}", v.body);
             println!("current hue: {:?}", v.hsbk.hue);
-            println!("current hue degrees: {:?}º",
-                     colour::hue_word_to_degrees(v.hsbk.hue));
+            println!(
+                "current hue degrees: {:?}º",
+                colour::hue_word_to_degrees(v.hsbk.hue)
+            );
             println!("current sat: {:?}", v.hsbk.saturation);
-            println!("current sat percent: {:?}%",
-                     colour::saturation_word_to_percent(v.hsbk.saturation as u16));
+            println!(
+                "current sat percent: {:?}%",
+                colour::saturation_word_to_percent(v.hsbk.saturation as u16)
+            );
             println!("current bri: {:?}", v.hsbk.brightness);
-            println!("current bri percent: {:?}%",
-                     colour::brightness_word_to_percent(v.hsbk.brightness as u16));
+            println!(
+                "current bri percent: {:?}%",
+                colour::brightness_word_to_percent(v.hsbk.brightness as u16)
+            );
             println!("current kel: {:?}", v.hsbk.kelvin);
         }
         None => (),
@@ -91,8 +97,11 @@ fn parse_hsvk(device: &Device) {
 
 fn change_colour(device: Device) {
     // Use constants.
-    let cols: Vec<colour::HSB> =
-        vec![colour::get_colour("red"), colour::get_colour("green"), colour::get_colour("blue")];
+    let cols: Vec<colour::HSB> = vec![
+        colour::get_colour("red"),
+        colour::get_colour("green"),
+        colour::get_colour("blue"),
+    ];
 
     for c in cols {
         let _ = messages::set_device_state(&device, &c, 1000, 0);
@@ -111,12 +120,12 @@ fn change_colour(device: Device) {
     // More constants.
     let cols: Vec<colour::HSB> = vec![
         colour::get_colour("beige"),
-        colour::get_colour("chartreuse"), 
-        colour::get_colour("coral"), 
-        colour::get_colour("cornflower"), 
-        colour::get_colour("crimson"), 
-        colour::get_colour("deep_sky_blue"), 
-        colour::get_colour("slate_gray"), 
+        colour::get_colour("chartreuse"),
+        colour::get_colour("coral"),
+        colour::get_colour("cornflower"),
+        colour::get_colour("crimson"),
+        colour::get_colour("deep_sky_blue"),
+        colour::get_colour("slate_gray"),
     ];
 
     for c in cols {
@@ -126,7 +135,6 @@ fn change_colour(device: Device) {
 
     let device = messages::set_device_state(&device, &colour::get_colour("beige"), 1000, 0);
     display_response("Set state", &device.unwrap().response.unwrap());
-
 }
 
 fn display_response(title: &str, resp: &response::Response) {

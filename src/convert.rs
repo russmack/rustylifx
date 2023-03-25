@@ -1,4 +1,3 @@
-
 use std::str;
 
 fn as_base10(v: Vec<u8>) -> String {
@@ -31,5 +30,7 @@ fn as_hex(arr: Vec<u8>) -> String {
 }
 
 fn bitstr_to_u32(bits: &str) -> u32 {
-    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
+    bits.as_bytes()
+        .iter()
+        .fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }

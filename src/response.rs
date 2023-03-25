@@ -19,7 +19,7 @@ pub fn parse_response(resp_msg: ResponseData) -> Response {
     let mut resp = parse_header(&resp_msg);
 
     let payload = match resp.message_type {
-        3 => parse_payload_3(&resp_msg), 
+        3 => parse_payload_3(&resp_msg),
         107 => parse_payload_107(&resp_msg),
         _ => Payload::None(()),
     };
@@ -37,12 +37,12 @@ fn parse_header(resp: &ResponseData) -> Response {
         firmware: ResponseData::firmware(resp),
 
         // TODO: packed byte
-        sequence_number: ResponseData::sequence_number(&resp),
+        sequence_number: ResponseData::sequence_number(resp),
 
         // Message segment: protocol header
-        reserved_1: ResponseData::reserved_1(&resp), // timestamp?
-        message_type: ResponseData::message_type(&resp),
-        reserved_2: ResponseData::reserved_2(&resp),
+        reserved_1: ResponseData::reserved_1(resp), // timestamp?
+        message_type: ResponseData::message_type(resp),
+        reserved_2: ResponseData::reserved_2(resp),
         payload: Payload::None(()),
     }
 }
@@ -83,26 +83,26 @@ pub struct PayloadHSBK {
 
 fn parse_payload_3(resp: &ResponseData) -> Payload {
     Payload::StateService(StateServicePayload {
-        service: ResponseData::service(&resp),
-        port: ResponseData::port(&resp),
-        unknown: ResponseData::unknown(&resp),
+        service: ResponseData::service(resp),
+        port: ResponseData::port(resp),
+        unknown: ResponseData::unknown(resp),
     })
 }
 
 fn parse_payload_22(resp: &ResponseData) -> Payload {
     Payload::StatePower(StatePowerPayload {
-        level: ResponseData::level(&resp),
+        level: ResponseData::level(resp),
     })
 }
 
 fn parse_payload_107(resp: &ResponseData) -> Payload {
     Payload::State(StatePayload {
-        body: ResponseData::body(&resp),
+        body: ResponseData::body(resp),
         hsbk: PayloadHSBK {
-            hue: ResponseData::hue(&resp),
-            saturation: ResponseData::saturation(&resp),
-            brightness: ResponseData::brightness(&resp),
-            kelvin: ResponseData::kelvin(&resp),
+            hue: ResponseData::hue(resp),
+            saturation: ResponseData::saturation(resp),
+            brightness: ResponseData::brightness(resp),
+            kelvin: ResponseData::kelvin(resp),
         },
     })
 }
@@ -112,50 +112,50 @@ pub struct ResponseData(pub Vec<u8>);
 
 impl ResponseData {
     fn size(resp: &ResponseData) -> u16 {
-        let mut b = extract(&resp, 0, 2);
+        let mut b = extract(resp, 0, 2);
         b.reverse();
         as_base10(b)
     }
 
     fn source(resp: &ResponseData) -> u32 {
-        let mut b = extract(&resp, 4, 4);
+        let mut b = extract(resp, 4, 4);
         b.reverse();
         let bstr = as_boolean(b);
         bitstr_to_u32(&bstr)
     }
 
     fn mac_address(resp: &ResponseData) -> String {
-        as_hex(extract(&resp, 8, 8))
+        as_hex(extract(resp, 8, 8))
     }
 
     fn firmware(resp: &ResponseData) -> String {
-        as_ascii(extract(&resp, 16, 6))
+        as_ascii(extract(resp, 16, 6))
     }
 
     fn sequence_number(resp: &ResponseData) -> u16 {
-        as_base10(extract(&resp, 23, 1))
+        as_base10(extract(resp, 23, 1))
     }
 
     fn reserved_1(resp: &ResponseData) -> u32 {
-        let mut b = extract(&resp, 24, 8);
+        let mut b = extract(resp, 24, 8);
         b.reverse();
         let bstr = as_boolean(b);
         bitstr_to_u32(&bstr)
     }
 
     fn message_type(resp: &ResponseData) -> u16 {
-        let mut b = extract(&resp, 32, 2);
+        let mut b = extract(resp, 32, 2);
         b.reverse();
         as_base10(b)
     }
 
     fn reserved_2(resp: &ResponseData) -> u16 {
-        let b = extract(&resp, 34, 2);
-        as_base10(b)  // TODO: may not be base10, but undocumented.
+        let b = extract(resp, 34, 2);
+        as_base10(b) // TODO: may not be base10, but undocumented.
     }
 
     fn service(resp: &ResponseData) -> u16 {
-        as_base10(extract(&resp, 36, 1))
+        as_base10(extract(resp, 36, 1))
     }
 
     fn port(resp: &ResponseData) -> u32 {
@@ -166,7 +166,7 @@ impl ResponseData {
     }
 
     fn level(resp: &ResponseData) -> u16 {
-        as_base10(extract(&resp, 36, 1))
+        as_base10(extract(resp, 36, 1))
     }
 
     fn unknown(resp: &ResponseData) -> String {
@@ -342,20 +342,26 @@ fn as_hex(arr: Vec<u8>) -> String {
 }
 
 fn bitstr_to_u8(bits: &str) -> u8 {
-    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
+    bits.as_bytes()
+        .iter()
+        .fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
 fn bitstr_to_u16(bits: &str) -> u16 {
-    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
+    bits.as_bytes()
+        .iter()
+        .fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
 fn bitstr_to_u32(bits: &str) -> u32 {
-    bits.as_bytes().iter().fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
+    bits.as_bytes()
+        .iter()
+        .fold(0, |acc, b| (acc << 1) + if *b == 48 { 0 } else { 1 })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ResponseData, extract, as_base10, as_ascii, as_boolean, as_hex, bitstr_to_u32};
+    use super::{as_ascii, as_base10, as_boolean, as_hex, bitstr_to_u32, extract, ResponseData};
 
     #[test]
     fn test_extract() {
@@ -385,7 +391,9 @@ mod tests {
 
     #[test]
     fn test_from_hex() {
-        assert_eq!(as_hex(vec![209, 114, 214, 20, 224, 14, 0, 0]),
-                   "D1:72:D6:14:E0:0E:00:00");
+        assert_eq!(
+            as_hex(vec![209, 114, 214, 20, 224, 14, 0, 0]),
+            "D1:72:D6:14:E0:0E:00:00"
+        );
     }
 }
