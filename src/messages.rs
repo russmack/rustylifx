@@ -1,15 +1,15 @@
 use std::io;
 use std::net::Ipv4Addr;
 
-use colour;
-use network;
-use request::Frame;
-use request::FrameAddress;
-use request::Header;
-use request::Payload;
-use request::ProtocolHeader;
-use request::Request;
-use request::RequestBin;
+use crate::colour;
+use crate::network;
+use crate::request::Frame;
+use crate::request::FrameAddress;
+use crate::request::Header;
+use crate::request::Payload;
+use crate::request::ProtocolHeader;
+use crate::request::Request;
+use crate::request::RequestBin;
 
 /// Finds devices on the network.
 pub fn get_service(subnet: Ipv4Addr) -> Result<network::Device, io::Error> {

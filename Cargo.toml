@@ -1,4 +1,5 @@
 [package]
+edition = "2024"
 name = "rustylifx"
 version = "0.2.0"
 authors = ["Russell Mackenzie <russmackdev@gmail.com"]

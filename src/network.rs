@@ -2,8 +2,8 @@ use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use std::time::Duration;
 
-use request::RequestBin;
-use response::{self, Response};
+use crate::request::RequestBin;
+use crate::response::{self, Response};
 
 const DEBUG_ENABLED: bool = false;
 

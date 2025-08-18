@@ -123,7 +123,7 @@ pub fn rgb_to_hsv(rgb: Rgb) -> Hsb {
 #[cfg(test)]
 mod tests {
 
-    use colour::*;
+    use crate::colour::*;
 
     #[test]
     fn test_hue_degrees_to_word() {
@@ -150,7 +150,7 @@ mod tests {
         struct Test {
             rgb: Rgb,
             hsb: Hsb,
-        };
+        }
 
         let tests = vec![
             Test {
