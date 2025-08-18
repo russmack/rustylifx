@@ -3,6 +3,7 @@ extern crate rustylifx;
 use rustylifx::network::Device;
 use rustylifx::{colour, messages, response};
 
+use std::net::Ipv4Addr;
 use std::process;
 use std::thread;
 use std::time::Duration;
@@ -10,7 +11,8 @@ use std::time::Duration;
 fn main() {
     println!("Available named colours: {:?}", colour::named_colours());
 
-    let device = find_device();
+    let subnet = Ipv4Addr::new(192, 168, 1, 255);
+    let device = find_device(subnet);
 
     let device = get_device_state(device);
 
@@ -29,8 +31,8 @@ fn main() {
     println!("\nFinished.");
 }
 
-fn find_device() -> Device {
-    let device = match messages::get_service() {
+fn find_device(subnet: Ipv4Addr) -> Device {
+    let device = match messages::get_service(subnet) {
         Ok(v) => v,
         Err(e) => {
             println!("failed getting device power state: {:?}", e);
@@ -97,7 +99,7 @@ fn parse_hsvk(device: &Device) {
 
 fn change_colour(device: Device) {
     // Use constants.
-    let cols: Vec<colour::HSB> = vec![
+    let cols: Vec<colour::Hsb> = vec![
         colour::get_colour("red"),
         colour::get_colour("green"),
         colour::get_colour("blue"),
@@ -108,8 +110,8 @@ fn change_colour(device: Device) {
         thread::sleep(Duration::from_millis(1000));
     }
 
-    // Use RGB.
-    let rgb_orange = colour::rgb_to_hsv(colour::RGB {
+    // Use Rgb.
+    let rgb_orange = colour::rgb_to_hsv(colour::Rgb {
         red: 255,
         green: 165,
         blue: 0,
@@ -118,7 +120,7 @@ fn change_colour(device: Device) {
     thread::sleep(Duration::from_millis(1000));
 
     // More constants.
-    let cols: Vec<colour::HSB> = vec![
+    let cols: Vec<colour::Hsb> = vec![
         colour::get_colour("beige"),
         colour::get_colour("chartreuse"),
         colour::get_colour("coral"),
